@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple File Transfer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<h2>Upload File</h2>
+
+<form method="POST" enctype="multipart/form-data">
+    <input type="file" name="file" required>
+    <button type="submit">Upload</button>
+</form>
+
+{% if code %}
+    <h3>Your Download Code: {{ code }}</h3>
+{% endif %}
+
+<hr>
+
+<h2>Download File</h2>
+
+<form action="/download" method="POST">
+    <input type="text" name="code" placeholder="Enter Code" required>
+    <button type="submit">Get File</button>
+</form>
+
+</body>
+</html>
