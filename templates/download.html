@@ -3,15 +3,24 @@
 
 <head>
     <title>Download File</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
 <body>
 
-    <h2>File Ready</h2>
+    <div class="container">
+        <div class="card success-page">
+            <h2>✅ File Ready</h2>
+            <p>Your file is ready to download</p>
 
-    <a href="{{ url_for('get_file', code=code) }}">
-        <button>Download File</button>
-    </a>
+            <a href="{{ url_for('get_file', code=code) }}" class="btn btn-download">
+                📥 Download File
+            </a>
+
+            <a href="/" class="link-back">← Back to Home</a>
+        </div>
+    </div>
 
 </body>
 
