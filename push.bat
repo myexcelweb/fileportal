@@ -1,9 +1,9 @@
 @echo off
-title File Transfer App - Git Push
+title File Transfer App - Auto Git Push
 color 0A
 
 echo ==========================================
-echo        FILE TRANSFER APP - GIT PUSH
+echo     FILE TRANSFER APP - AUTO GIT PUSH
 echo ==========================================
 echo.
 
@@ -17,46 +17,20 @@ echo.
 :: Check if git exists
 where git >nul 2>nul
 if %errorlevel% neq 0 (
-    echo ERROR: Git is not installed or not in PATH.
+    echo ERROR: Git is not installed.
     pause
     exit /b
 )
 
-:: Check if this is a git repo
+:: Check if git repo
 if not exist ".git" (
     echo ERROR: This folder is not a git repository.
-    echo Run: git init
     pause
     exit /b
 )
 
-echo Checking status...
-git status
-echo.
-
-echo Adding files...
-git add .
-
-echo.
-set /p msg=Enter commit message: 
-
-:: Check empty message
-if "%msg%"=="" (
-    echo.
-    echo ERROR: Commit message cannot be empty.
-    pause
-    exit /b
-)
-
-echo.
-echo Committing...
-git commit -m "%msg%"
-
-echo.
-echo Detecting branch...
-
+:: Detect branch
 for /f "tokens=*" %%i in ('git branch --show-current') do set branch=%%i
-
 if "%branch%"=="" (
     set branch=main
 )
@@ -64,11 +38,41 @@ if "%branch%"=="" (
 echo Current branch: %branch%
 echo.
 
+:: Pull latest changes first (avoid conflicts)
+echo Pulling latest changes...
+git pull origin %branch%
+echo.
+
+:: Add all changes
+git add .
+
+:: Check if there are changes to commit
+git diff --cached --quiet
+if %errorlevel%==0 (
+    echo No changes to commit.
+    echo.
+    echo ==========================================
+    echo         NOTHING TO PUSH
+    echo ==========================================
+    pause
+    exit /b
+)
+
+:: Auto commit message with date & time
+set msg=Auto Update %date% %time%
+
+echo Committing with message:
+echo %msg%
+echo.
+
+git commit -m "%msg%"
+
+echo.
 echo Pushing to GitHub...
 git push -u origin %branch%
 
 echo.
 echo ==========================================
-echo        PUSH COMPLETED SUCCESSFULLY
+echo      PUSH COMPLETED SUCCESSFULLY
 echo ==========================================
 pause
