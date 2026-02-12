@@ -4,7 +4,7 @@
 <head>
     <title>File Transfer</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static_files', filename='style.css') }}">
 </head>
 
 <body>
@@ -14,42 +14,184 @@
         <p class="subtitle">Share files instantly with a code</p>
 
         <div class="card">
-            <h2>📤 Upload File</h2>
+            <h2>📤 Upload Files</h2>
             <form method="POST" enctype="multipart/form-data">
                 <div class="file-input-wrapper">
-                    <input type="file" name="file" id="file" required>
+                    <input type="file" name="file" id="file" multiple required>
                     <label for="file" class="file-label">
-                        <span id="file-name">Choose File</span>
+                        <span id="file-name">📎 Choose Files</span>
                     </label>
                 </div>
+                <div id="file-list" class="file-list"></div>
                 <button type="submit" class="btn btn-primary">Upload</button>
             </form>
-            <p class="info">Max size: 100MB</p>
+            <p class="info">Max total size: 100MB • Multiple files supported</p>
+
+            {% if error %}
+            <div class="error-box">
+                <h3>❌ Error</h3>
+                <p>{{ error }}</p>
+            </div>
+            {% endif %}
 
             {% if code %}
             <div class="success-box">
                 <h3>✅ Upload Successful!</h3>
                 <div class="code-display">{{ code }}</div>
-                <p>Share this code to download the file</p>
+                <button class="btn-copy" onclick="copyCode('{{ code }}')">
+                    📋 Copy Code
+                </button>
+                <p class="expire-info">⏱️ Expires in 15 minutes</p>
+                <p>Share this code to download the files</p>
+
+                {% if share_url %}
+                <div class="share-section">
+                    <h4>Or share this link:</h4>
+                    <div class="share-url-container">
+                        <input type="text" id="shareUrl" value="{{ share_url }}" readonly class="share-url-input">
+                        <button class="btn-copy-small" onclick="copyUrl()">
+                            📋 Copy Link
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if files %}
+                <div class="uploaded-files">
+                    <h4>Uploaded Files:</h4>
+                    {% for file in files %}
+                    <div class="file-item">
+                        <span class="file-type-badge">{{ file.type }}</span>
+                        <span class="file-name">{{ file.original_name }}</span>
+                        <span class="file-size">{{ file.size }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
             </div>
             {% endif %}
         </div>
 
         <div class="card">
-            <h2>📥 Download File</h2>
+            <h2>📥 Download Files</h2>
             <form action="/download" method="POST">
                 <input type="text" name="code" placeholder="Enter 6-digit code" pattern="[0-9]{6}" maxlength="6"
                     required>
-                <button type="submit" class="btn btn-secondary">Get File</button>
+                <button type="submit" class="btn btn-secondary">Get Files</button>
             </form>
         </div>
     </div>
 
+    <footer class="footer">
+        <p>Designed & Developed by Parimal Hodar | <a
+                href="mailto:parimalhodar.dev@gmail.com">parimalhodar.dev@gmail.com</a></p>
+    </footer>
+
     <script>
-        document.getElementById('file').addEventListener('change', function (e) {
-            const fileName = e.target.files[0]?.name || 'Choose File';
-            document.getElementById('file-name').textContent = fileName.length > 20 ? fileName.substring(0, 20) + '...' : fileName;
+        const fileInput = document.getElementById('file');
+        const fileNameDisplay = document.getElementById('file-name');
+        const fileListDiv = document.getElementById('file-list');
+
+        fileInput.addEventListener('change', function (e) {
+            const files = e.target.files;
+
+            if (files.length === 0) {
+                fileNameDisplay.textContent = '📎 Choose Files';
+                fileListDiv.innerHTML = '';
+                return;
+            }
+
+            fileNameDisplay.textContent = `📎 ${files.length} file${files.length > 1 ? 's' : ''} selected`;
+
+            // Show file list
+            let listHTML = '<div class="selected-files"><h4>Selected Files:</h4>';
+            let totalSize = 0;
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                totalSize += file.size;
+                const size = formatFileSize(file.size);
+                const type = getFileType(file.name);
+
+                listHTML += `
+                    <div class="file-item-preview">
+                        <span class="file-type-badge">${type}</span>
+                        <span class="file-name">${truncateFileName(file.name, 25)}</span>
+                        <span class="file-size">${size}</span>
+                    </div>
+                `;
+            }
+
+            const totalSizeFormatted = formatFileSize(totalSize);
+            const isOverLimit = totalSize > 100 * 1024 * 1024;
+
+            listHTML += `<div class="total-size ${isOverLimit ? 'over-limit' : ''}">
+                Total: ${totalSizeFormatted} ${isOverLimit ? '⚠️ Exceeds 100MB limit!' : ''}
+            </div></div>`;
+
+            fileListDiv.innerHTML = listHTML;
         });
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        function getFileType(filename) {
+            const ext = filename.split('.').pop().toUpperCase();
+            return ext || 'FILE';
+        }
+
+        function truncateFileName(name, maxLength) {
+            if (name.length <= maxLength) return name;
+            const ext = name.split('.').pop();
+            const nameWithoutExt = name.substring(0, name.length - ext.length - 1);
+            const truncated = nameWithoutExt.substring(0, maxLength - ext.length - 4);
+            return truncated + '...' + ext;
+        }
+
+        function copyCode(code) {
+            navigator.clipboard.writeText(code).then(() => {
+                const btn = event.target;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '✅ Copied!';
+                btn.style.background = '#4CAF50';
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.style.background = '';
+                }, 2000);
+            }).catch(err => {
+                alert('Failed to copy code');
+            });
+        }
+
+        function copyUrl() {
+            const urlInput = document.getElementById('shareUrl');
+            urlInput.select();
+            urlInput.setSelectionRange(0, 99999); // For mobile
+
+            navigator.clipboard.writeText(urlInput.value).then(() => {
+                const btn = event.target;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '✅ Copied!';
+                btn.style.background = '#4CAF50';
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.style.background = '';
+                }, 2000);
+            }).catch(err => {
+                // Fallback for older browsers
+                document.execCommand('copy');
+                const btn = event.target;
+                btn.innerHTML = '✅ Copied!';
+                setTimeout(() => {
+                    btn.innerHTML = '📋 Copy Link';
+                }, 2000);
+            });
+        }
     </script>
 
 </body>

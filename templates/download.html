@@ -2,25 +2,173 @@
 <html>
 
 <head>
-    <title>Download File</title>
+    <title>Download Files</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static_files', filename='style.css') }}">
 </head>
 
 <body>
 
     <div class="container">
+        {% if error %}
+        <div class="card error-page">
+            <h2>❌ Error</h2>
+            <p>{{ error }}</p>
+            <a href="/" class="link-back">← Back to Home</a>
+        </div>
+        {% else %}
         <div class="card success-page">
-            <h2>✅ File Ready</h2>
-            <p>Your file is ready to download</p>
+            <h2>✅ Files Ready</h2>
+            <div class="code-display-small">Code: {{ code }}</div>
+            <button class="btn-copy" onclick="copyCode('{{ code }}')">
+                📋 Copy Code
+            </button>
 
-            <a href="{{ url_for('get_file', code=code) }}" class="btn btn-download">
+            {% if time_remaining %}
+            <p class="expire-warning">⏱️ Expires in {{ time_remaining }}</p>
+            {% endif %}
+
+            {% if share_url %}
+            <div class="share-section">
+                <h4>Share this link:</h4>
+                <div class="share-url-container">
+                    <input type="text" id="shareUrl" value="{{ share_url }}" readonly class="share-url-input">
+                    <button class="btn-copy-small" onclick="copyUrl()">
+                        📋 Copy Link
+                    </button>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="files-container">
+                <h3>Available Files:</h3>
+                {% for file in files %}
+                <div class="download-file-item">
+                    <div class="file-info">
+                        <span class="file-type-badge">{{ file.type }}</span>
+                        <div class="file-details">
+                            <span class="file-name">{{ file.original_name }}</span>
+                            <span class="file-size-small">{{ file.size }}</span>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('get_file', code=code, index=loop.index0) }}" class="btn-icon"
+                        title="Download {{ file.original_name }}">
+                        📥
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if files|length > 1 %}
+            <a href="{{ url_for('get_all_files', code=code) }}" class="btn btn-download">
+                📦 Download All Files (ZIP)
+            </a>
+            {% else %}
+            <a href="{{ url_for('get_file', code=code, index=0) }}" class="btn btn-download">
                 📥 Download File
             </a>
+            {% endif %}
 
             <a href="/" class="link-back">← Back to Home</a>
         </div>
+        {% endif %}
     </div>
+
+    <footer class="footer">
+        <p>Designed & Developed by Parimal Hodar | <a
+                href="mailto:parimalhodar.dev@gmail.com">parimalhodar.dev@gmail.com</a></p>
+    </footer>
+
+    {% if time_remaining %}
+    <script>
+        // Auto-refresh countdown every second
+        setTimeout(() => {
+            location.reload();
+        }, 5000); // Refresh every 5 seconds to update timer
+
+        function copyCode(code) {
+            navigator.clipboard.writeText(code).then(() => {
+                const btn = event.target;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '✅ Copied!';
+                btn.style.background = '#4CAF50';
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.style.background = '';
+                }, 2000);
+            }).catch(err => {
+                alert('Failed to copy code');
+            });
+        }
+
+        function copyUrl() {
+            const urlInput = document.getElementById('shareUrl');
+            urlInput.select();
+            urlInput.setSelectionRange(0, 99999); // For mobile
+
+            navigator.clipboard.writeText(urlInput.value).then(() => {
+                const btn = event.target;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '✅ Copied!';
+                btn.style.background = '#4CAF50';
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.style.background = '';
+                }, 2000);
+            }).catch(err => {
+                // Fallback for older browsers
+                document.execCommand('copy');
+                const btn = event.target;
+                btn.innerHTML = '✅ Copied!';
+                setTimeout(() => {
+                    btn.innerHTML = '📋 Copy Link';
+                }, 2000);
+            });
+        }
+    </script>
+    {% else %}
+    <script>
+        function copyCode(code) {
+            navigator.clipboard.writeText(code).then(() => {
+                const btn = event.target;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '✅ Copied!';
+                btn.style.background = '#4CAF50';
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.style.background = '';
+                }, 2000);
+            }).catch(err => {
+                alert('Failed to copy code');
+            });
+        }
+
+        function copyUrl() {
+            const urlInput = document.getElementById('shareUrl');
+            urlInput.select();
+            urlInput.setSelectionRange(0, 99999); // For mobile
+
+            navigator.clipboard.writeText(urlInput.value).then(() => {
+                const btn = event.target;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '✅ Copied!';
+                btn.style.background = '#4CAF50';
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.style.background = '';
+                }, 2000);
+            }).catch(err => {
+                // Fallback for older browsers
+                document.execCommand('copy');
+                const btn = event.target;
+                btn.innerHTML = '✅ Copied!';
+                setTimeout(() => {
+                    btn.innerHTML = '📋 Copy Link';
+                }, 2000);
+            });
+        }
+    </script>
+    {% endif %}
 
 </body>
 
