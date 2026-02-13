@@ -90,6 +90,18 @@
                 <button type="submit" class="btn btn-secondary">Get Files</button>
             </form>
         </div>
+
+        <!-- QR Code Section - Above Footer -->
+        <div class="qr-bottom-section">
+            <div class="qr-bottom-container">
+                <img src="{{ url_for('static_files', filename='URL_QR_Code.png') }}" alt="QR Code"
+                    class="qr-bottom-image" title="Scan to open this website on your mobile device">
+                <div class="qr-bottom-text">
+                    <span class="qr-bottom-title">📱 Mobile Access</span>
+                    <span class="qr-bottom-subtitle">Scan to open this website on your phone</span>
+                </div>
+            </div>
+        </div>
     </div>
 
     <footer class="footer">
