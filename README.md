@@ -1,176 +1,119 @@
-# 📁 File Transfer Application
+# 📁 Real-Time File Transfer Application
 
-A modern, secure file transfer application with auto-delete functionality and support for multiple file uploads.
+A modern, secure file transfer application with **real-time updates**, auto-delete functionality, and support for multiple file uploads. Files appear instantly on all connected devices without page refresh!
 
 ## ✨ Features
 
+### 🚀 Real-Time Updates (NEW!)
+- **Instant File Visibility**: When someone uploads a file, all users in the room see it immediately without refreshing
+- **Live Notifications**: Get notified when files are uploaded or downloaded
+- **Real-Time Activity**: See file transfers happening live
+
+### 📤 File Transfer
 - **Multiple File Upload**: Upload multiple files at once (up to 100MB total)
 - **Auto-Delete**: Files automatically delete after 15 minutes
 - **Individual & Bulk Download**: Download files individually or all at once as a ZIP
 - **File Information**: View file names, types, and sizes
-- **Mobile Optimized**: Perfect mobile viewing experience
+
+### 🔐 Security & Privacy
 - **Secure Codes**: 6-digit codes for secure file sharing
-- **Real-time Timer**: Shows time remaining before files expire
+- **Room Isolation**: Each room is completely separate
+- **Auto-Expiration**: Rooms and files auto-delete after 15 minutes
 
-## 🚀 Deploy to Render
+## 🔧 How Real-Time Updates Work
 
-### Method 1: Direct GitHub Deployment
+The app uses **Socket.IO** (WebSockets) to enable real-time communication:
 
-1. **Push to GitHub**:
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit"
-   git branch -M main
-   git remote add origin YOUR_GITHUB_REPO_URL
-   git push -u origin main
-   ```
+1. **User A** uploads a file → Server receives it
+2. **Server** saves file and broadcasts to all users in the room
+3. **User B, C, D...** instantly see the new file appear on their screen
+4. **No refresh needed** - everything happens automatically!
 
-2. **Deploy on Render**:
-   - Go to [Render Dashboard](https://dashboard.render.com/)
-   - Click "New +" → "Web Service"
-   - Connect your GitHub repository
-   - Configure:
-     - **Name**: file-transfer-app (or your choice)
-     - **Environment**: Python 3
-     - **Build Command**: `pip install -r requirements.txt`
-     - **Start Command**: `gunicorn app:app`
-     - **Instance Type**: Free (or paid for better performance)
-   - Click "Create Web Service"
+## 🚀 Quick Start
 
-### Method 2: Manual Deployment
+### Local Development
 
-1. **Create Render Account**: Sign up at [render.com](https://render.com)
-
-2. **Create New Web Service**:
-   - Click "New +" → "Web Service"
-   - Choose "Build and deploy from a Git repository"
-   - Connect your GitHub account and select repository
-
-3. **Configure Settings**:
-   ```
-   Name: file-transfer-app
-   Region: Choose closest to your users
-   Branch: main
-   Runtime: Python 3
-   Build Command: pip install -r requirements.txt
-   Start Command: gunicorn app:app
-   ```
-
-4. **Environment Variables** (Optional):
-   - `PORT`: Auto-set by Render
-   - Add any custom environment variables if needed
-
-5. **Deploy**: Click "Create Web Service"
-
-## 📦 Local Development
-
-1. **Clone the repository**:
-   ```bash
-   git clone YOUR_REPO_URL
-   cd file-transfer-app
-   ```
-
-2. **Create virtual environment**:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-3. **Install dependencies**:
+1. **Install Dependencies**:
    ```bash
    pip install -r requirements.txt
    ```
 
-4. **Run the application**:
+2. **Run the Application**:
    ```bash
    python app.py
    ```
 
-5. **Access**: Open browser to `http://localhost:5000`
+3. **Access**: Open `http://localhost:5000`
 
-## 📁 Project Structure
+### Test Real-Time Features
 
-```
-file-transfer-app/
-├── app.py                 # Main Flask application
-├── requirements.txt       # Python dependencies
-├── .gitignore            # Git ignore rules
-├── static/
-│   └── style.css         # Styling
-├── templates/
-│   ├── index.html        # Upload page
-│   └── download.html     # Download page
-└── uploads/              # Temporary file storage (auto-created)
-```
+1. Open the app in **two different browser windows** (or devices)
+2. Create a room in Window 1
+3. Join the same room in Window 2 using the code
+4. Upload a file in Window 1
+5. **Watch it appear instantly in Window 2!** ✨
 
-## 🔧 Configuration
+## 🌐 Deploy to Render
 
-### File Size Limit
-Change in `app.py`:
-```python
-app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024  # 100MB
+### Important Start Command
+
+For WebSocket support, use this start command:
+```bash
+gunicorn --worker-class eventlet -w 1 app:app
 ```
 
-### Auto-Delete Timer
-Change in `app.py`:
-```python
-if (current_time - timestamp) > timedelta(minutes=15):  # Change 15 to desired minutes
+**Note**: `-w 1` (single worker) is required for Socket.IO with in-memory storage.
+
+### Full Deployment Steps
+
+1. **Push to GitHub**:
+   ```bash
+   git add .
+   git commit -m "Real-time file transfer app"
+   git push origin main
+   ```
+
+2. **Deploy on Render**:
+   - Go to [Render Dashboard](https://dashboard.render.com/)
+   - New Web Service → Connect your repo
+   - Build Command: `pip install -r requirements.txt`
+   - Start Command: `gunicorn --worker-class eventlet -w 1 app:app`
+   - Deploy!
+
+## 📦 Dependencies
+
+```
+Flask==3.0.0
+gunicorn==21.2.0
+flask-socketio==5.3.6
+python-socketio==5.11.0
+eventlet==0.35.2
 ```
 
-## 🛠️ Technical Details
+## 🎯 Use Cases
 
-- **Backend**: Flask (Python)
-- **Frontend**: HTML, CSS, JavaScript
-- **Server**: Gunicorn (production)
-- **Auto-cleanup**: Background thread removes old files
-- **Storage**: In-memory code storage + file system
+- **Quick File Sharing**: Share files with colleagues without email
+- **Temporary Transfers**: Send files that auto-delete for privacy
+- **Collaborative Work**: Multiple people can upload/download files simultaneously
+- **Mobile-to-Desktop**: Easy file transfer between your devices
 
-## 📱 Mobile Support
+## 🔒 Security Notes
 
-Fully responsive design optimized for:
-- Mobile phones (320px+)
-- Tablets (600px+)
-- Desktop (1200px+)
-
-## 🔒 Security Features
-
-- File size validation
-- Code expiration (15 minutes)
-- Secure file naming
-- Input validation
-
-## ⚠️ Important Notes
-
-1. **Persistence**: On Render's free tier, the file system is ephemeral. Files may be deleted on service restart.
-2. **Scaling**: For production use, consider:
-   - Using object storage (AWS S3, Cloudinary)
-   - Database for code storage (PostgreSQL, Redis)
-   - Increased instance specs
+1. **Room Codes**: 6-digit codes provide basic security
+2. **Auto-Expiration**: Files and rooms delete after 15 minutes
+3. **WebSocket Security**: Uses secure WebSocket (WSS) in production
 
 ## 🐛 Troubleshooting
 
-### Files not uploading
+### Real-Time Updates Not Working
+- Ensure Socket.IO client library is loaded
+- Verify Gunicorn uses eventlet worker: `--worker-class eventlet`
+- Check firewall isn't blocking WebSocket connections
+
+### Files Not Uploading
 - Check total file size < 100MB
 - Ensure `uploads/` directory exists
-
-### Auto-delete not working
-- Background cleanup thread runs every minute
-- Check server logs for errors
-
-### Deployment issues
-- Verify `requirements.txt` is correct
-- Ensure `gunicorn` is installed
-- Check Render logs for errors
 
 ## 📄 License
 
 MIT License - feel free to use for any project!
-
-## 🤝 Contributing
-
-Contributions welcome! Please open an issue or submit a pull request.
-
-## 📧 Support
-
-For issues or questions, please open a GitHub issue.

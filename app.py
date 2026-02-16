@@ -1,187 +1,193 @@
-# pyright: reportOptionalMemberAccess=false
 import os
-import random
-import string
-import logging
-import threading
 import time
-from datetime import datetime, timedelta
+import threading
 from pathlib import Path
-from flask import Flask, render_template, request, send_file, jsonify, send_from_directory, redirect, url_for, session
+from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
-
-app = Flask(__name__, static_folder='static')
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory, jsonify, make_response
+from flask_socketio import SocketIO, emit, join_room, leave_room
+import random
+import zipfile
+import io
 
 # ────────────────────────────────────────────────
-#  CONFIGURATION & SECURITY
+#  APP & SOCKET.IO CONFIGURATION
 # ────────────────────────────────────────────────
-# Use Environment Variable for Secret Key on Render, or a default for local dev
-app.secret_key = os.environ.get("SECRET_KEY", "fileportal_secure_key_98765")
 
-# Render's free tier works best with /tmp for temporary file storage
-UPLOAD_FOLDER = "/tmp/uploads"
-ROOM_DURATION_MINS = 30
-MAX_TOTAL_SIZE = 100 * 1024 * 1024  # 100 MB total per room limit
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-app.config["MAX_CONTENT_LENGTH"] = MAX_TOTAL_SIZE
+app = Flask(__name__)
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "your-secret-key-here-change-in-production")
+app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024  # 100MB max
 
-# Ensure upload directory exists
-Path(UPLOAD_FOLDER).mkdir(parents=True, exist_ok=True)
+# Initialize Socket.IO
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
-# In-memory database for Rooms
-# Structure: { "code": {"timestamp": datetime, "host": str, "files": [], "history": []} }
+UPLOAD_FOLDER = "uploads"
+ROOM_DURATION_MINS = 15
+
+Path(UPLOAD_FOLDER).mkdir(exist_ok=True)
+
+# ────────────────────────────────────────────────
+#  IN-MEMORY STORAGE
+# ────────────────────────────────────────────────
+
 room_store = {}
 
-# User Name Generation Lists
-ADJECTIVES = ["Swift", "Brave", "Shiny", "Cool", "Clever", "Happy", "Silver", "Neon", "Fast", "Quiet"]
-ANIMALS = ["Tiger", "Panda", "Fox", "Eagle", "Wolf", "Dolphin", "Lion", "Falcon", "Owl", "Shark"]
-
 # ────────────────────────────────────────────────
-#  LOGGING
-# ────────────────────────────────────────────────
-logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
-logger = logging.getLogger(__name__)
-
-# ────────────────────────────────────────────────
-#  HELPER FUNCTIONS
+#  UTILITY FUNCTIONS
 # ────────────────────────────────────────────────
 
-def get_or_create_user():
-    """Assigns a unique, persistent username to the visitor's session."""
-    if 'username' not in session:
-        name = f"{random.choice(ADJECTIVES)}-{random.choice(ANIMALS)}-{random.randint(10, 99)}"
-        session['username'] = name
-    return session['username']
-
-def generate_room_code(length=6):
-    """Generates a unique 6-digit numeric code for the room."""
+def generate_code():
+    """Generate a unique 6-digit code for the room."""
     while True:
-        code = ''.join(random.choices(string.digits, k=length))
+        code = ''.join([str(random.randint(0, 9)) for _ in range(6)])
         if code not in room_store:
             return code
 
-def get_human_size(size_bytes):
-    """Converts bytes to a human-readable string (MB, KB, etc)."""
-    size = float(size_bytes)
+def get_human_size(bytes_size):
+    """Convert bytes to human-readable format."""
     for unit in ['B', 'KB', 'MB', 'GB']:
-        if size < 1024.0: return f"{size:.1f} {unit}"
-        size /= 1024.0
-    return f"{size:.1f} PB"
+        if bytes_size < 1024:
+            return f"{bytes_size:.1f} {unit}"
+        bytes_size /= 1024
+    return f"{bytes_size:.1f} TB"
+
+def get_or_create_user():
+    """Get user ID from cookie or create a new one."""
+    user_id = request.cookies.get('user_id')
+    if not user_id:
+        user_id = f"user_{int(time.time())}_{random.randint(1000, 9999)}"
+    return user_id
 
 def add_history(code, user, action):
-    """Logs an activity into the room's history list."""
+    """Add an action to room history."""
     if code in room_store:
-        timestamp = datetime.now().strftime("%I:%M %p")
-        room_store[code]['history'].insert(0, {
+        room_store[code]["history"].append({
             "user": user,
             "action": action,
-            "time": timestamp
+            "time": datetime.now().strftime("%H:%M:%S")
         })
 
-# ────────────────────────────────────────────────
-#  BACKGROUND CLEANUP TASK
-# ────────────────────────────────────────────────
-
 def cleanup_expired_rooms():
-    """Thread that runs every minute to delete rooms older than 30 mins."""
+    """Background task to delete expired rooms and their files."""
     while True:
-        try:
-            now = datetime.now()
-            expired_codes = []
-            
-            for code, data in room_store.items():
-                if now - data['timestamp'] > timedelta(minutes=ROOM_DURATION_MINS):
-                    expired_codes.append(code)
-            
-            for code in expired_codes:
-                # Delete files from disk
-                for file_info in room_store[code]['files']:
-                    file_path = Path(UPLOAD_FOLDER) / file_info['stored_name']
+        time.sleep(60)  # Run every minute
+        now = datetime.now()
+        expired = []
+        
+        for code, data in list(room_store.items()):
+            if (now - data["timestamp"]) > timedelta(minutes=ROOM_DURATION_MINS):
+                expired.append(code)
+                for file_info in data["files"]:
+                    file_path = Path(UPLOAD_FOLDER) / file_info["stored_name"]
                     if file_path.exists():
                         file_path.unlink()
                 
-                # Delete from memory
-                del room_store[code]
-                logger.info(f"Cleanup: Room {code} and its files deleted.")
-                
-        except Exception as e:
-            logger.error(f"Cleanup Error: {e}")
-        
-        time.sleep(60)
-
-# Start cleanup thread in the background
-threading.Thread(target=cleanup_expired_rooms, daemon=True).start()
+        for code in expired:
+            del room_store[code]
 
 # ────────────────────────────────────────────────
-#  WEB ROUTES
+#  SOCKET.IO EVENTS (Real-time updates)
+# ────────────────────────────────────────────────
+
+@socketio.on('join')
+def handle_join(data):
+    """Handle user joining a room."""
+    code = data.get('code')
+    if code and code in room_store:
+        join_room(code)
+        print(f"User joined room: {code}")
+
+@socketio.on('leave')
+def handle_leave(data):
+    """Handle user leaving a room."""
+    code = data.get('code')
+    if code:
+        leave_room(code)
+        print(f"User left room: {code}")
+
+# ────────────────────────────────────────────────
+#  ROUTES
 # ────────────────────────────────────────────────
 
 @app.route("/")
 def index():
-    user = get_or_create_user()
-    error = request.args.get('error')
-    return render_template("index.html", error=error, username=user)
+    return render_template("index.html")
 
-@app.route("/favicon.ico")
-def favicon():
-    return send_from_directory(os.path.join(app.root_path, 'static'),
-                               'favicon.ico', mimetype='image/vnd.microsoft.icon')
-
-@app.route("/create-room", methods=["POST"])
+@app.route("/create", methods=["POST"])
 def create_room():
-    user = get_or_create_user()
-    code = generate_room_code()
+    code = generate_code()
+    print(f"✓ Creating room with code: {code}")
     
     room_store[code] = {
         "timestamp": datetime.now(),
-        "host": user,
         "files": [],
         "history": []
     }
+    user = get_or_create_user()
+    add_history(code, user, "created room")
     
-    add_history(code, user, "created the room (Host)")
-    logger.info(f"Room Created: {code} by {user}")
-    return redirect(url_for('room_page', code=code))
+    print(f"✓ Room {code} created successfully")
+    print(f"✓ Redirecting to /room/{code}")
+    
+    response = make_response(redirect(url_for('room_page', code=code)))
+    response.set_cookie('user_id', user, max_age=60*60*24)
+    return response
 
 @app.route("/join", methods=["POST"])
-def join_room():
+def join_existing_room():
     code = request.form.get("code", "").strip()
-    if code in room_store:
-        user = get_or_create_user()
-        add_history(code, user, "joined the room")
-        return redirect(url_for('room_page', code=code))
-    return redirect(url_for('index', error="Invalid or Expired Room Code"))
+    
+    print(f"Attempting to join room: {code}")
+    print(f"Available rooms: {list(room_store.keys())}")
+    
+    if code not in room_store:
+        return render_template("index.html", error="Invalid or expired code")
+    
+    user = get_or_create_user()
+    add_history(code, user, "joined room")
+    
+    response = make_response(redirect(url_for('room_page', code=code)))
+    response.set_cookie('user_id', user, max_age=60*60*24)
+    return response
 
 @app.route("/room/<code>")
 def room_page(code):
+    print(f"→ Accessing room page for: {code}")
+    print(f"→ Room exists: {code in room_store}")
+    
     if code not in room_store:
-        return redirect(url_for('index', error="This room has expired or does not exist."))
-
+        print(f"✗ Room {code} not found!")
+        return render_template("index.html", error="Room not found or expired")
+    
     user = get_or_create_user()
-    room = room_store[code]
+    room_data = room_store[code]
     
-    base_url = request.url_root.rstrip("/")
-    share_url = f"{base_url}/room/{code}"
+    now = datetime.now()
+    elapsed = now - room_data["timestamp"]
+    remaining = timedelta(minutes=ROOM_DURATION_MINS) - elapsed
+    remaining_seconds = int(remaining.total_seconds())
     
-    return render_template("room.html", 
-                           code=code, 
-                           files=room["files"], 
-                           history=room["history"],
-                           my_username=user,
-                           share_url=share_url)
+    print(f"✓ Rendering room {code} successfully")
+    
+    return render_template("room.html",
+                         code=code,
+                         files=room_data["files"],
+                         history=room_data["history"],
+                         current_user=user,
+                         remaining_seconds=max(0, remaining_seconds))
 
-@app.route("/room/<code>", methods=["POST"])
+@app.route("/upload/<code>", methods=["POST"])
 def upload_file(code):
     if code not in room_store:
         return redirect(url_for('index'))
 
     user = get_or_create_user()
     files = request.files.getlist("file")
+    uploaded_files = []
     
     for file in files:
         if file and file.filename:
             orig_name = file.filename
-            # Generate a unique filename for disk
             stored_name = f"{code}_{int(time.time())}_{secure_filename(orig_name)}"
             path = Path(UPLOAD_FOLDER) / stored_name
             file.save(path)
@@ -191,11 +197,21 @@ def upload_file(code):
                 "stored_name": stored_name,
                 "size": get_human_size(path.stat().st_size),
                 "type": orig_name.split('.')[-1].upper() if '.' in orig_name else "FILE",
-                "sender": user
+                "sender": user,
+                "index": len(room_store[code]["files"])
             }
             
             room_store[code]["files"].append(file_data)
+            uploaded_files.append(file_data)
             add_history(code, user, f"sent file: {orig_name}")
+    
+    # Emit real-time update to all users in the room
+    if uploaded_files:
+        print(f"📤 Broadcasting {len(uploaded_files)} new file(s) to room {code}")
+        socketio.emit('new_files', {
+            'files': uploaded_files,
+            'sender': user
+        }, to=code)
             
     return redirect(url_for('room_page', code=code))
 
@@ -207,11 +223,42 @@ def download_file(code, index):
         
         add_history(code, user, f"downloaded: {file_info['original_name']}")
         
+        socketio.emit('file_downloaded', {
+            'filename': file_info['original_name'],
+            'user': user
+        }, to=code)
+        
         return send_from_directory(UPLOAD_FOLDER, 
                                    file_info["stored_name"], 
                                    as_attachment=True, 
                                    download_name=file_info["original_name"])
     return "File not found", 404
+
+@app.route("/download_all/<code>")
+def download_all(code):
+    if code not in room_store:
+        return "Room not found", 404
+    
+    user = get_or_create_user()
+    files = room_store[code]["files"]
+    
+    if not files:
+        return "No files to download", 404
+    
+    memory_file = io.BytesIO()
+    with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for file_info in files:
+            file_path = Path(UPLOAD_FOLDER) / file_info["stored_name"]
+            if file_path.exists():
+                zf.write(file_path, file_info["original_name"])
+    
+    memory_file.seek(0)
+    add_history(code, user, "downloaded all files")
+    
+    return (memory_file.getvalue(), 200, {
+        'Content-Type': 'application/zip',
+        'Content-Disposition': f'attachment; filename=files_{code}.zip'
+    })
 
 @app.route("/api/timer/<code>")
 def api_timer(code):
@@ -233,10 +280,22 @@ def api_timer(code):
 # ────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    # Ensure standard folders exist
     Path("static").mkdir(exist_ok=True)
     Path("templates").mkdir(exist_ok=True)
+    Path(UPLOAD_FOLDER).mkdir(exist_ok=True)
     
-    # Render provides a PORT environment variable
+    print("\n" + "=" * 60)
+    print("  FILE TRANSFER APP - Real-Time Edition")
+    print("=" * 60)
+    print(f"📁 Templates: {Path('templates').absolute()}")
+    print(f"🎨 Static: {Path('static').absolute()}")
+    print(f"📤 Uploads: {Path('uploads').absolute()}")
+    print("=" * 60)
+    print("🚀 Server starting...")
+    print("=" * 60 + "\n")
+    
+    cleanup_thread = threading.Thread(target=cleanup_expired_rooms, daemon=True)
+    cleanup_thread.start()
+    
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    socketio.run(app, host="0.0.0.0", port=port, debug=True)

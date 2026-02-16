@@ -5,26 +5,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>File Transfer Room</title>
-    <!-- CRITICAL: This line must use 'static' to match app.py -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
 <body>
-
     <div class="container">
         <h1>📁 File Transfer Room</h1>
-        <p class="subtitle">Create a temporary room to share files</p>
+        <p class="subtitle">Create a temporary room to share files in real-time</p>
 
         <!-- CREATE ROOM SECTION -->
         <div class="card">
             <h2>📤 Start a Transfer</h2>
             <p style="text-align: center; color: #666; margin-bottom: 20px;">
-                Create a private room. Files and the room will be deleted automatically after 30 minutes.
+                Create a private room. Files and the room will be deleted automatically after 15 minutes.
             </p>
-            <form action="/create-room" method="POST">
-                <button type="submit" class="btn btn-primary">Create Room (30 Min)</button>
+            <form action="/create" method="POST">
+                <button type="submit" class="btn btn-primary">Create Room (15 Min)</button>
             </form>
-            <p class="info">No registration required • Instant setup</p>
+            <p class="info">No registration required • Real-time sync • Instant setup</p>
         </div>
 
         <!-- JOIN ROOM SECTION -->
@@ -35,25 +33,20 @@
                     required>
                 <button type="submit" class="btn btn-secondary">Join Room</button>
             </form>
-            <p class="info">Enter the password or scan the QR code to enter</p>
+            <p class="info">Enter the code to see files appear in real-time</p>
         </div>
 
         {% if error %}
         <div class="error-box">
             <h3>❌ Error</h3>
             <p>{{ error }}</p>
-            <a href="/" class="link-back">Try again</a>
         </div>
         {% endif %}
     </div>
 
     <footer class="footer">
-        <p>
-            Designed & Developed by Parimal Hodar |
-            <a href="mailto:parimalhodar.dev@gmail.com">parimalhodar.dev@gmail.com</a>
-        </p>
+        <p>Real-time File Transfer • Secure & Auto-Delete</p>
     </footer>
-
 </body>
 
 </html>

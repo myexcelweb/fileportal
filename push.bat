@@ -51,6 +51,17 @@ if %errorlevel% equ 0 (
     echo.
     echo [ACTION] Render is now building your update!
     echo [URL] Check: https://fileportal.onrender.com
+    echo.
+    echo ==========================================
+    echo [IMPORTANT] Real-Time Update Deployed!
+    echo ==========================================
+    echo.
+    echo Update your Render START COMMAND to:
+    echo gunicorn --worker-class eventlet -w 1 app:app
+    echo.
+    echo This enables WebSocket support for real-time
+    echo file transfers without page refresh!
+    echo ==========================================
 ) else (
     echo.
     echo [ERROR] Push failed. Check your GitHub permissions or internet.
