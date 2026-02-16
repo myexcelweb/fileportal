@@ -8,55 +8,76 @@ echo      FILEPORTAL - SECURE DEPLOYMENT
 echo ==========================================
 echo.
 
-:: Ensure we are in the correct folder
+:: Ensure we are in the project folder
 cd /d "%~dp0"
 
-:: Detect current branch
+:: 1. VERIFY GIT INSTALLATION
+where git >nul 2>nul
+if %errorlevel% neq 0 (
+    echo [ERROR] Git is not installed or not in your PATH.
+    pause
+    exit /b
+)
+
+:: 2. SYNC REMOTE URL
+:: This ensures your local folder points to the NEW fileportal repo
+echo [1/6] Updating Repository Path...
+git remote set-url origin https://github.com/myexcelweb/fileportal.git >nul 2>&1
+if %errorlevel% neq 0 (
+    git remote add origin https://github.com/myexcelweb/fileportal.git >nul 2>&1
+)
+
+:: 3. DETECT BRANCH
 for /f "tokens=*" %%i in ('git branch --show-current') do set branch=%%i
 if "%branch%"=="" (set branch=main)
-
 echo [INFO] Current Branch: %branch%
-echo.
 
-:: Step 1: Stage all changes
-echo [1/4] Staging files...
+:: 4. STAGE AND COMMIT
+echo [2/6] Staging files...
 git add .
 
-:: Step 2: Commit the changes
-echo [2/4] Committing changes...
-:: We check if there are changes. If yes, we commit using a direct string to avoid empty variable errors.
+echo [3/6] Checking for changes...
 git diff --cached --quiet
 if %errorlevel% neq 0 (
+    echo [INFO] Committing changes...
     git commit -m "FilePortal Update: %date% %time%"
 ) else (
     echo [SKIP] No new changes to commit.
 )
 
-:: Step 3: Pull latest changes from GitHub
-echo.
-echo [3/4] Pulling updates from GitHub...
-:: Using --rebase to keep history clean
+:: 5. PULL REBASE
+echo [4/6] Pulling latest updates from GitHub...
 git pull origin %branch% --rebase
+if %errorlevel% neq 0 (
+    echo [ERROR] Failed to pull. You might have a conflict or no internet.
+    pause
+    exit /b
+)
 
-:: Step 4: Push to GitHub
-echo.
-echo [4/4] Pushing code to GitHub...
+:: 6. THE PUSH & VERIFICATION
+echo [5/6] Pushing code to GitHub...
 git push origin %branch%
 
-:: Final Check
+:: VERIFY SUCCESS
 if %errorlevel% equ 0 (
     echo.
     echo ==========================================
-    echo      SUCCESS: CODE SYNCED SUCCESSFULLY
+    echo    VERIFIED: PUSH COMPLETED SUCCESSFULLY
     echo ==========================================
+    echo [6/6] Update confirmed on GitHub.
     echo.
     echo [ACTION] Render is now building your update!
     echo [URL] Check: https://fileportal.onrender.com
     echo.
 ) else (
     echo.
-    echo [ERROR] Push failed. 
-    echo Please check for merge conflicts or internet issues.
+    echo ==========================================
+    echo       CRITICAL ERROR: PUSH FAILED
+    echo ==========================================
+    echo [CHECK] 1. Is your internet working?
+    echo [CHECK] 2. Does the repo 'fileportal' exist on GitHub?
+    echo [CHECK] 3. Do you have permission to push?
+    echo.
 )
 
 echo ==========================================
