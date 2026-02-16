@@ -1,5 +1,6 @@
 @echo off
-title FilePortal - Auto Git Push & Deploy
+setlocal enabledelayedexpansion
+title FilePortal - Auto Git Push and Deploy
 color 0B
 
 echo ==========================================
@@ -7,66 +8,42 @@ echo      FILEPORTAL - SECURE DEPLOYMENT
 echo ==========================================
 echo.
 
-:: Go to script directory
+:: Ensure we are in the correct folder
 cd /d "%~dp0"
-
-:: Check if git exists
-where git >nul 2>nul
-if %errorlevel% neq 0 (
-    echo [ERROR] Git is not installed or not in PATH.
-    pause
-    exit /b
-)
-
-:: Check if git repo exists
-if not exist ".git" (
-    echo [ERROR] This folder is not initialized as a Git repository.
-    echo Run 'git init' first.
-    pause
-    exit /b
-)
 
 :: Detect current branch
 for /f "tokens=*" %%i in ('git branch --show-current') do set branch=%%i
-if "%branch%"=="" (
-    set branch=main
-)
+if "%branch%"=="" (set branch=main)
 
 echo [INFO] Current Branch: %branch%
-echo [INFO] Preparing to sync with GitHub...
 echo.
 
-:: Pull latest changes first to prevent conflicts
-echo Step 1: Pulling latest changes from GitHub...
-git pull origin %branch% --rebase
-echo.
-
-:: Add all changes
-echo Step 2: Staging new changes...
+:: Step 1: Stage all changes
+echo [1/4] Staging files...
 git add .
 
-:: Check if there are actually any changes to commit
+:: Step 2: Commit the changes
+echo [2/4] Committing changes...
+:: We check if there are changes. If yes, we commit using a direct string to avoid empty variable errors.
 git diff --cached --quiet
-if %errorlevel%==0 (
-    echo.
-    echo ==========================================
-    echo       STATUS: NOTHING NEW TO PUSH
-    echo ==========================================
-    pause
-    exit /b
+if %errorlevel% neq 0 (
+    git commit -m "FilePortal Update: %date% %time%"
+) else (
+    echo [SKIP] No new changes to commit.
 )
 
-:: Auto commit message with date & time
-set msg=FilePortal Update: %date% %time%
-
-echo Step 3: Committing changes...
-echo Message: %msg%
-git commit -m "%msg%"
-
+:: Step 3: Pull latest changes from GitHub
 echo.
-echo Step 4: Pushing to GitHub...
+echo [3/4] Pulling updates from GitHub...
+:: Using --rebase to keep history clean
+git pull origin %branch% --rebase
+
+:: Step 4: Push to GitHub
+echo.
+echo [4/4] Pushing code to GitHub...
 git push origin %branch%
 
+:: Final Check
 if %errorlevel% equ 0 (
     echo.
     echo ==========================================
@@ -74,12 +51,12 @@ if %errorlevel% equ 0 (
     echo ==========================================
     echo.
     echo [ACTION] Render is now building your update!
-    echo [URL] Check here: https://fileportal.onrender.com
+    echo [URL] Check: https://fileportal.onrender.com
     echo.
 ) else (
     echo.
-    echo [ERROR] Something went wrong during the push.
-    echo Check your internet connection or GitHub credentials.
+    echo [ERROR] Push failed. 
+    echo Please check for merge conflicts or internet issues.
 )
 
 echo ==========================================
