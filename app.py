@@ -1,5 +1,6 @@
-import eventlet
-eventlet.monkey_patch()  # Required for Gunicorn + SocketIO
+# 🟢 CRITICAL: Monkey patch must be the very first line!
+from gevent import monkey
+monkey.patch_all()
 
 import os
 import time
@@ -21,8 +22,8 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "your-secret-key-here-change-in-production")
 app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024  # 100MB max
 
-# Initialize Socket.IO with CORS enabled and let it detect eventlet
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
+# 🟢 CHANGED: Using 'gevent' for better compatibility with Python 3.12+
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='gevent')
 
 UPLOAD_FOLDER = "uploads"
 ROOM_DURATION_MINS = 15
@@ -34,8 +35,7 @@ Path(UPLOAD_FOLDER).mkdir(exist_ok=True)
 # ────────────────────────────────────────────────
 
 room_store = {}
-# Thread lock to prevent cleanup task from deleting a room 
-# while a user is trying to upload/download simultaneously.
+# 🟢 ADDED: Lock to prevent database corruption during concurrent access
 room_lock = threading.Lock()
 
 # ────────────────────────────────────────────────
@@ -78,12 +78,12 @@ def add_history(code, user, action):
 def cleanup_expired_rooms():
     """Background task to delete expired rooms and their files."""
     while True:
-        eventlet.sleep(60)  # Use eventlet sleep to not block the worker
+        time.sleep(60)  # Runs every minute
         now = datetime.now()
         expired_files = []
         expired_rooms = []
         
-        # 1. Identify expired rooms safely
+        # Identify expired items safely
         with room_lock:
             for code, data in list(room_store.items()):
                 if (now - data["timestamp"]) > timedelta(minutes=ROOM_DURATION_MINS):
@@ -91,11 +91,11 @@ def cleanup_expired_rooms():
                     for file_info in data["files"]:
                         expired_files.append(file_info["stored_name"])
             
-            # Remove from store
+            # Remove from memory
             for code in expired_rooms:
                 del room_store[code]
 
-        # 2. Delete files (Outside lock to allow other operations to proceed)
+        # Delete files from disk (Outside lock to allow other operations)
         for filename in expired_files:
             try:
                 file_path = Path(UPLOAD_FOLDER) / filename
@@ -108,14 +108,12 @@ def cleanup_expired_rooms():
             print(f"🧹 Cleanup: Removed {len(expired_rooms)} expired rooms.")
 
 # ────────────────────────────────────────────────
-#  SOCKET.IO EVENTS (Real-time updates)
+#  SOCKET.IO EVENTS
 # ────────────────────────────────────────────────
 
 @socketio.on('join')
 def handle_join(data):
-    """Handle user joining a room."""
     code = data.get('code')
-    # Check existence safely
     exists = False
     with room_lock:
         exists = code in room_store
@@ -126,7 +124,6 @@ def handle_join(data):
 
 @socketio.on('leave')
 def handle_leave(data):
-    """Handle user leaving a room."""
     code = data.get('code')
     if code:
         leave_room(code)
@@ -142,7 +139,7 @@ def index():
 
 @app.route("/create", methods=["POST"])
 def create_room():
-    code = generate_code() # This now handles locking internally
+    code = generate_code()
     
     with room_lock:
         room_store[code] = {
@@ -179,7 +176,6 @@ def room_page(code):
         if code not in room_store:
             return render_template("index.html", error="Room not found or expired")
         
-        # Deep copy needed? usually not for rendering, but extracting data safely
         room_data = room_store[code]
         files = room_data["files"]
         history = room_data["history"]
@@ -201,7 +197,6 @@ def room_page(code):
 
 @app.route("/upload/<code>", methods=["POST"])
 def upload_file(code):
-    # Quick check before processing files
     with room_lock:
         if code not in room_store:
             return redirect(url_for('index'))
@@ -210,7 +205,7 @@ def upload_file(code):
     files = request.files.getlist("file")
     uploaded_files = []
     
-    # Save files to disk first (I/O operation)
+    # Process files
     processed_files_data = []
     for file in files:
         if file and file.filename:
@@ -227,7 +222,7 @@ def upload_file(code):
                 "sender": user
             })
 
-    # Update state safely
+    # Update store safely
     with room_lock:
         if code in room_store:
             current_count = len(room_store[code]["files"])
@@ -275,7 +270,8 @@ def download_all(code):
     with room_lock:
         if code not in room_store:
             return "Room not found", 404
-        files_to_zip = list(room_store[code]["files"]) # Create a copy
+        # Create a shallow copy to use outside the lock
+        files_to_zip = list(room_store[code]["files"])
     
     if not files_to_zip:
         return "No files to download", 404
@@ -305,15 +301,21 @@ def download_all(code):
 # ────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    # This block is for local development only
+    # Create necessary folders
     Path("static").mkdir(exist_ok=True)
     Path("templates").mkdir(exist_ok=True)
     Path(UPLOAD_FOLDER).mkdir(exist_ok=True)
     
     # Start cleanup thread
-    # Note: In production with Gunicorn, this thread might run per worker
     cleanup_thread = threading.Thread(target=cleanup_expired_rooms, daemon=True)
     cleanup_thread.start()
     
     port = int(os.environ.get("PORT", 5000))
+    
+    # 🟢 ADDED: Print the local URL for easy access
+    print("\n" + "="*60)
+    print(f"🚀 Server is running! Open this URL in your browser:")
+    print(f"🔗 http://127.0.0.1:{port}")
+    print("="*60 + "\n")
+
     socketio.run(app, host="0.0.0.0", port=port, debug=True)
