@@ -3,9 +3,10 @@ services:
     name: room-transfer-app
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app
+    # CRITICAL UPDATE: Uses eventlet worker for Socket.IO support
+    startCommand: gunicorn --worker-class eventlet -w 1 app:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
       - key: SECRET_KEY
-        value: generate_a_random_secret_string_here
+        generateValue: true

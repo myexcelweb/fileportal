@@ -1,3 +1,6 @@
+import eventlet
+eventlet.monkey_patch()  # Required for Gunicorn + SocketIO
+
 import os
 import time
 import threading
@@ -18,8 +21,8 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "your-secret-key-here-change-in-production")
 app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024  # 100MB max
 
-# Initialize Socket.IO
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+# Initialize Socket.IO with CORS enabled and let it detect eventlet
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 UPLOAD_FOLDER = "uploads"
 ROOM_DURATION_MINS = 15
@@ -27,10 +30,13 @@ ROOM_DURATION_MINS = 15
 Path(UPLOAD_FOLDER).mkdir(exist_ok=True)
 
 # ────────────────────────────────────────────────
-#  IN-MEMORY STORAGE
+#  IN-MEMORY STORAGE & LOCKING
 # ────────────────────────────────────────────────
 
 room_store = {}
+# Thread lock to prevent cleanup task from deleting a room 
+# while a user is trying to upload/download simultaneously.
+room_lock = threading.Lock()
 
 # ────────────────────────────────────────────────
 #  UTILITY FUNCTIONS
@@ -38,10 +44,11 @@ room_store = {}
 
 def generate_code():
     """Generate a unique 6-digit code for the room."""
-    while True:
-        code = ''.join([str(random.randint(0, 9)) for _ in range(6)])
-        if code not in room_store:
-            return code
+    with room_lock:
+        while True:
+            code = ''.join([str(random.randint(0, 9)) for _ in range(6)])
+            if code not in room_store:
+                return code
 
 def get_human_size(bytes_size):
     """Convert bytes to human-readable format."""
@@ -59,31 +66,46 @@ def get_or_create_user():
     return user_id
 
 def add_history(code, user, action):
-    """Add an action to room history."""
-    if code in room_store:
-        room_store[code]["history"].append({
-            "user": user,
-            "action": action,
-            "time": datetime.now().strftime("%H:%M:%S")
-        })
+    """Add an action to room history (Thread Safe)."""
+    with room_lock:
+        if code in room_store:
+            room_store[code]["history"].append({
+                "user": user,
+                "action": action,
+                "time": datetime.now().strftime("%H:%M:%S")
+            })
 
 def cleanup_expired_rooms():
     """Background task to delete expired rooms and their files."""
     while True:
-        time.sleep(60)  # Run every minute
+        eventlet.sleep(60)  # Use eventlet sleep to not block the worker
         now = datetime.now()
-        expired = []
+        expired_files = []
+        expired_rooms = []
         
-        for code, data in list(room_store.items()):
-            if (now - data["timestamp"]) > timedelta(minutes=ROOM_DURATION_MINS):
-                expired.append(code)
-                for file_info in data["files"]:
-                    file_path = Path(UPLOAD_FOLDER) / file_info["stored_name"]
-                    if file_path.exists():
-                        file_path.unlink()
+        # 1. Identify expired rooms safely
+        with room_lock:
+            for code, data in list(room_store.items()):
+                if (now - data["timestamp"]) > timedelta(minutes=ROOM_DURATION_MINS):
+                    expired_rooms.append(code)
+                    for file_info in data["files"]:
+                        expired_files.append(file_info["stored_name"])
+            
+            # Remove from store
+            for code in expired_rooms:
+                del room_store[code]
+
+        # 2. Delete files (Outside lock to allow other operations to proceed)
+        for filename in expired_files:
+            try:
+                file_path = Path(UPLOAD_FOLDER) / filename
+                if file_path.exists():
+                    file_path.unlink()
+            except Exception as e:
+                print(f"Error deleting file {filename}: {e}")
                 
-        for code in expired:
-            del room_store[code]
+        if expired_rooms:
+            print(f"🧹 Cleanup: Removed {len(expired_rooms)} expired rooms.")
 
 # ────────────────────────────────────────────────
 #  SOCKET.IO EVENTS (Real-time updates)
@@ -93,7 +115,12 @@ def cleanup_expired_rooms():
 def handle_join(data):
     """Handle user joining a room."""
     code = data.get('code')
-    if code and code in room_store:
+    # Check existence safely
+    exists = False
+    with room_lock:
+        exists = code in room_store
+
+    if code and exists:
         join_room(code)
         print(f"User joined room: {code}")
 
@@ -115,19 +142,17 @@ def index():
 
 @app.route("/create", methods=["POST"])
 def create_room():
-    code = generate_code()
-    print(f"✓ Creating room with code: {code}")
+    code = generate_code() # This now handles locking internally
     
-    room_store[code] = {
-        "timestamp": datetime.now(),
-        "files": [],
-        "history": []
-    }
+    with room_lock:
+        room_store[code] = {
+            "timestamp": datetime.now(),
+            "files": [],
+            "history": []
+        }
+    
     user = get_or_create_user()
     add_history(code, user, "created room")
-    
-    print(f"✓ Room {code} created successfully")
-    print(f"✓ Redirecting to /room/{code}")
     
     response = make_response(redirect(url_for('room_page', code=code)))
     response.set_cookie('user_id', user, max_age=60*60*24)
@@ -137,11 +162,9 @@ def create_room():
 def join_existing_room():
     code = request.form.get("code", "").strip()
     
-    print(f"Attempting to join room: {code}")
-    print(f"Available rooms: {list(room_store.keys())}")
-    
-    if code not in room_store:
-        return render_template("index.html", error="Invalid or expired code")
+    with room_lock:
+        if code not in room_store:
+            return render_template("index.html", error="Invalid or expired code")
     
     user = get_or_create_user()
     add_history(code, user, "joined room")
@@ -152,39 +175,43 @@ def join_existing_room():
 
 @app.route("/room/<code>")
 def room_page(code):
-    print(f"→ Accessing room page for: {code}")
-    print(f"→ Room exists: {code in room_store}")
-    
-    if code not in room_store:
-        print(f"✗ Room {code} not found!")
-        return render_template("index.html", error="Room not found or expired")
-    
+    with room_lock:
+        if code not in room_store:
+            return render_template("index.html", error="Room not found or expired")
+        
+        # Deep copy needed? usually not for rendering, but extracting data safely
+        room_data = room_store[code]
+        files = room_data["files"]
+        history = room_data["history"]
+        timestamp = room_data["timestamp"]
+
     user = get_or_create_user()
-    room_data = room_store[code]
     
     now = datetime.now()
-    elapsed = now - room_data["timestamp"]
+    elapsed = now - timestamp
     remaining = timedelta(minutes=ROOM_DURATION_MINS) - elapsed
     remaining_seconds = int(remaining.total_seconds())
     
-    print(f"✓ Rendering room {code} successfully")
-    
     return render_template("room.html",
                          code=code,
-                         files=room_data["files"],
-                         history=room_data["history"],
+                         files=files,
+                         history=history,
                          current_user=user,
                          remaining_seconds=max(0, remaining_seconds))
 
 @app.route("/upload/<code>", methods=["POST"])
 def upload_file(code):
-    if code not in room_store:
-        return redirect(url_for('index'))
+    # Quick check before processing files
+    with room_lock:
+        if code not in room_store:
+            return redirect(url_for('index'))
 
     user = get_or_create_user()
     files = request.files.getlist("file")
     uploaded_files = []
     
+    # Save files to disk first (I/O operation)
+    processed_files_data = []
     for file in files:
         if file and file.filename:
             orig_name = file.filename
@@ -192,22 +219,25 @@ def upload_file(code):
             path = Path(UPLOAD_FOLDER) / stored_name
             file.save(path)
             
-            file_data = {
+            processed_files_data.append({
                 "original_name": orig_name,
                 "stored_name": stored_name,
                 "size": get_human_size(path.stat().st_size),
                 "type": orig_name.split('.')[-1].upper() if '.' in orig_name else "FILE",
-                "sender": user,
-                "index": len(room_store[code]["files"])
-            }
-            
-            room_store[code]["files"].append(file_data)
-            uploaded_files.append(file_data)
-            add_history(code, user, f"sent file: {orig_name}")
+                "sender": user
+            })
+
+    # Update state safely
+    with room_lock:
+        if code in room_store:
+            current_count = len(room_store[code]["files"])
+            for i, f_data in enumerate(processed_files_data):
+                f_data["index"] = current_count + i
+                room_store[code]["files"].append(f_data)
+                uploaded_files.append(f_data)
     
-    # Emit real-time update to all users in the room
     if uploaded_files:
-        print(f"📤 Broadcasting {len(uploaded_files)} new file(s) to room {code}")
+        add_history(code, user, f"sent {len(uploaded_files)} file(s)")
         socketio.emit('new_files', {
             'files': uploaded_files,
             'sender': user
@@ -217,10 +247,14 @@ def upload_file(code):
 
 @app.route("/download/<code>/<int:index>")
 def download_file(code, index):
-    if code in room_store and index < len(room_store[code]["files"]):
+    file_info = None
+    
+    with room_lock:
+        if code in room_store and index < len(room_store[code]["files"]):
+            file_info = room_store[code]["files"][index]
+    
+    if file_info:
         user = get_or_create_user()
-        file_info = room_store[code]["files"][index]
-        
         add_history(code, user, f"downloaded: {file_info['original_name']}")
         
         socketio.emit('file_downloaded', {
@@ -236,21 +270,27 @@ def download_file(code, index):
 
 @app.route("/download_all/<code>")
 def download_all(code):
-    if code not in room_store:
-        return "Room not found", 404
+    files_to_zip = []
     
-    user = get_or_create_user()
-    files = room_store[code]["files"]
+    with room_lock:
+        if code not in room_store:
+            return "Room not found", 404
+        files_to_zip = list(room_store[code]["files"]) # Create a copy
     
-    if not files:
+    if not files_to_zip:
         return "No files to download", 404
     
+    user = get_or_create_user()
     memory_file = io.BytesIO()
-    with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
-        for file_info in files:
-            file_path = Path(UPLOAD_FOLDER) / file_info["stored_name"]
-            if file_path.exists():
-                zf.write(file_path, file_info["original_name"])
+    
+    try:
+        with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+            for file_info in files_to_zip:
+                file_path = Path(UPLOAD_FOLDER) / file_info["stored_name"]
+                if file_path.exists():
+                    zf.write(file_path, file_info["original_name"])
+    except Exception as e:
+        return f"Error creating zip: {str(e)}", 500
     
     memory_file.seek(0)
     add_history(code, user, "downloaded all files")
@@ -260,40 +300,18 @@ def download_all(code):
         'Content-Disposition': f'attachment; filename=files_{code}.zip'
     })
 
-@app.route("/api/timer/<code>")
-def api_timer(code):
-    if code not in room_store:
-        return jsonify({"expired": True})
-    
-    now = datetime.now()
-    room_ts = room_store[code]["timestamp"]
-    elapsed = now - room_ts
-    remaining = (timedelta(minutes=ROOM_DURATION_MINS) - elapsed).total_seconds()
-    
-    return jsonify({
-        "expired": remaining <= 0,
-        "remaining_seconds": int(max(0, remaining))
-    })
-
 # ────────────────────────────────────────────────
 #  APP START
 # ────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    # This block is for local development only
     Path("static").mkdir(exist_ok=True)
     Path("templates").mkdir(exist_ok=True)
     Path(UPLOAD_FOLDER).mkdir(exist_ok=True)
     
-    print("\n" + "=" * 60)
-    print("  FILE TRANSFER APP - Real-Time Edition")
-    print("=" * 60)
-    print(f"📁 Templates: {Path('templates').absolute()}")
-    print(f"🎨 Static: {Path('static').absolute()}")
-    print(f"📤 Uploads: {Path('uploads').absolute()}")
-    print("=" * 60)
-    print("🚀 Server starting...")
-    print("=" * 60 + "\n")
-    
+    # Start cleanup thread
+    # Note: In production with Gunicorn, this thread might run per worker
     cleanup_thread = threading.Thread(target=cleanup_expired_rooms, daemon=True)
     cleanup_thread.start()
     
