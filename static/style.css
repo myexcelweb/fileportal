@@ -897,3 +897,18 @@ input[type="text"]:focus {
     text-transform: uppercase;
     letter-spacing: 1px;
 }
+
+/* ... existing styles ... */
+
+.btn-danger {
+    background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+    color: white;
+    margin-top: 10px;
+    border: none;
+}
+
+.btn-danger:hover {
+    background: linear-gradient(135deg, #ff4b2b 0%, #ff416c 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(255, 75, 43, 0.4);
+}

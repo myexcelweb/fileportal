@@ -12,6 +12,41 @@
 
     <!-- QR Code Library (Lightweight) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <style>
+        /* Inline style for the danger button to ensure it looks red immediately */
+        .btn-danger {
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+            color: white;
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 10px;
+            transition: all 0.3s;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255, 75, 43, 0.4);
+        }
+
+        .home-link {
+            display: block;
+            text-align: center;
+            color: #666;
+            text-decoration: none;
+            font-weight: 500;
+            margin-top: 10px;
+        }
+
+        .home-link:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
 
 <body data-room-code="{{ code }}" data-current-user="{{ current_user }}"
@@ -118,7 +153,18 @@
             </div>
         </div>
 
-        <a href="{{ url_for('index') }}" class="btn btn-secondary">🏠 Create New Room</a>
+        <!-- 🟢 EXIT & DELETE SECTION -->
+        <div class="card" style="border: 2px solid #ffebee;">
+            <h3 style="color: #c62828;">⚠️ Danger Zone</h3>
+            <p class="info" style="margin-bottom: 15px;">Delete the room and all files immediately.</p>
+
+            <form action="{{ url_for('destroy_room', code=code) }}" method="POST"
+                onsubmit="return confirm('⚠️ Are you sure? This will delete the room and ALL files immediately. This action cannot be undone.');">
+                <button type="submit" class="btn-danger">❌ Exit & Delete Room Data</button>
+            </form>
+
+            <a href="{{ url_for('index') }}" class="home-link">⬅️ Go Home (Keep Room Open)</a>
+        </div>
     </div>
 
     <script>
@@ -163,6 +209,12 @@
             socket.emit('join', { code: roomCode });
         });
 
+        // 🟢 HANDLE ROOM DESTRUCTION (Force Redirect)
+        socket.on('room_destroyed', function () {
+            alert('🚫 This room has been closed and all files deleted.');
+            window.location.href = '/';
+        });
+
         // Handle new files uploaded by other users
         socket.on('new_files', function (data) {
             console.log('New files received:', data);
@@ -200,11 +252,6 @@
 
             // Update file count
             updateFileCount();
-
-            // Show notification if file was sent by another user
-            if (data.sender !== currentUser) {
-                // Optional: Play a sound or show a toast
-            }
         });
 
         // Handle file download notifications
