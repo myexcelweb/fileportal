@@ -1,6 +1,6 @@
-# 🟢 CRITICAL: Monkey patch must be the very first line!
-from gevent import monkey
-monkey.patch_all()
+# 🟢 CRITICAL: Must be FIRST
+import eventlet
+eventlet.monkey_patch()
 
 import os
 import time
@@ -22,8 +22,8 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "your-secret-key-here-change-in-production")
 app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024  # 100MB max
 
-# 🟢 CHANGED: Using 'gevent' for better compatibility with Python 3.12+
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='gevent')
+# 🟢 CHANGED: Using 'eventlet' as requested
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 UPLOAD_FOLDER = "uploads"
 ROOM_DURATION_MINS = 15
@@ -78,7 +78,7 @@ def add_history(code, user, action):
 def cleanup_expired_rooms():
     """Background task to delete expired rooms and their files."""
     while True:
-        time.sleep(60)  # Runs every minute
+        eventlet.sleep(60)  # 🟢 CHANGED: Use eventlet.sleep instead of time.sleep
         now = datetime.now()
         expired_files = []
         expired_rooms = []
