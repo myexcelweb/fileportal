@@ -35,7 +35,7 @@ Path(UPLOAD_FOLDER).mkdir(exist_ok=True)
 # ────────────────────────────────────────────────
 
 room_store = {}
-# 🟢 ADDED: Lock to prevent database corruption during concurrent access
+# 🟢 LOCK: Prevents crashes when multiple users access/delete rooms simultaneously
 room_lock = threading.Lock()
 
 # ────────────────────────────────────────────────
@@ -166,6 +166,22 @@ def join_existing_room():
     user = get_or_create_user()
     add_history(code, user, "joined room")
     
+    response = make_response(redirect(url_for('room_page', code=code)))
+    response.set_cookie('user_id', user, max_age=60*60*24)
+    return response
+
+# 🟢 NEW ROUTE: Handle Direct Join Links (QR Code)
+@app.route("/j/<code>")
+def join_via_link(code):
+    with room_lock:
+        if code not in room_store:
+            return render_template("index.html", error="Room expired or invalid")
+    
+    # Create user and log history
+    user = get_or_create_user()
+    add_history(code, user, "joined via QR/Link")
+    
+    # Set cookie and redirect
     response = make_response(redirect(url_for('room_page', code=code)))
     response.set_cookie('user_id', user, max_age=60*60*24)
     return response
@@ -312,7 +328,7 @@ if __name__ == "__main__":
     
     port = int(os.environ.get("PORT", 5000))
     
-    # 🟢 ADDED: Print the local URL for easy access
+    # 🟢 PRINT URL to Terminal
     print("\n" + "="*60)
     print(f"🚀 Server is running! Open this URL in your browser:")
     print(f"🔗 http://127.0.0.1:{port}")

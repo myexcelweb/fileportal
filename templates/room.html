@@ -6,17 +6,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Room {{ code }} - File Transfer</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
     <!-- Socket.IO Client Library -->
-    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.js"></script>
+
+    <!-- QR Code Library (Lightweight) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 
 <body data-room-code="{{ code }}" data-current-user="{{ current_user }}"
     data-remaining-seconds="{{ remaining_seconds }}">
+
     <div class="container">
         <h1>🔐 Room {{ code }}</h1>
-        <p class="subtitle">Share this code with others to transfer files</p>
+        <p class="subtitle">Share this code or scan QR to transfer files</p>
 
-        <!-- Timer Section -->
+        <!-- Timer & Code Section -->
         <div class="card">
             <div class="timer-container">
                 <div class="timer-label">Room expires in:</div>
@@ -29,7 +34,19 @@
             </div>
 
             <div class="code-display-small">{{ code }}</div>
-            <button class="btn-copy-small" onclick="copyCode()">📋 Copy Code</button>
+
+            <!-- QR Code Container -->
+            <div id="qrcode-container"
+                style="display: flex; flex-direction: column; align-items: center; margin: 15px 0; padding: 10px; background: #fff; border-radius: 10px;">
+                <div id="qrcode"></div>
+                <p
+                    style="margin-top: 10px; font-size: 12px; color: #888; font-weight: bold; text-transform: uppercase;">
+                    Scan to Join</p>
+            </div>
+
+            <button class="btn-copy-small" onclick="copyCode()">📋 Copy Room Code</button>
+            <button class="btn-copy-small" onclick="copyLink()"
+                style="margin-top: 8px; background: #4a90e2; width: 100%;">🔗 Copy Direct Link</button>
             <p class="info">Share this code with others to join this room</p>
         </div>
 
@@ -105,7 +122,7 @@
     </div>
 
     <script>
-        // Get configuration from data attributes (avoids VSCode linting errors)
+        // Get configuration from data attributes
         var roomCode = document.body.getAttribute('data-room-code');
         var currentUser = document.body.getAttribute('data-current-user');
         var remainingSeconds = parseInt(document.body.getAttribute('data-remaining-seconds'));
@@ -113,7 +130,34 @@
         // Initialize Socket.IO
         var socket = io();
 
-        // Join the room
+        // 🟢 QR CODE GENERATION
+        // We use the /j/ route if available, otherwise fallback to standard URL
+        var joinUrl = window.location.origin + "/j/" + roomCode;
+
+        try {
+            new QRCode(document.getElementById("qrcode"), {
+                text: joinUrl,
+                width: 128,
+                height: 128,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        } catch (e) {
+            console.error("QR Code library not loaded", e);
+            document.getElementById("qrcode-container").style.display = "none";
+        }
+
+        // 🟢 COPY LINK FUNCTION
+        function copyLink() {
+            navigator.clipboard.writeText(joinUrl).then(function () {
+                alert("Link copied to clipboard!\nShare this with others to join instantly.");
+            }).catch(function (err) {
+                console.error('Could not copy text: ', err);
+            });
+        }
+
+        // Join the room via Socket.IO
         socket.on('connect', function () {
             console.log('Connected to server');
             socket.emit('join', { code: roomCode });
@@ -152,10 +196,6 @@
             data.files.forEach(function (file) {
                 var fileItem = createFileElement(file);
                 filesContainer.insertAdjacentHTML('beforeend', fileItem);
-
-                // Add animation
-                var newItem = filesContainer.lastElementChild;
-                newItem.style.animation = 'slideIn 0.3s ease-out';
             });
 
             // Update file count
@@ -163,7 +203,7 @@
 
             // Show notification if file was sent by another user
             if (data.sender !== currentUser) {
-                showNotification('New file(s) uploaded!');
+                // Optional: Play a sound or show a toast
             }
         });
 
@@ -197,23 +237,6 @@
         function updateFileCount() {
             var fileItems = document.querySelectorAll('.file-item');
             document.getElementById('file-count').textContent = fileItems.length;
-        }
-
-        // Show notification
-        function showNotification(message) {
-            var notification = document.createElement('div');
-            notification.className = 'notification';
-            notification.textContent = message;
-            notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 25px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3); z-index: 1000; animation: slideInRight 0.3s ease-out;';
-
-            document.body.appendChild(notification);
-
-            setTimeout(function () {
-                notification.style.animation = 'slideOutRight 0.3s ease-out';
-                setTimeout(function () {
-                    notification.remove();
-                }, 300);
-            }, 3000);
         }
 
         // File input display
@@ -285,11 +308,6 @@
         window.addEventListener('beforeunload', function () {
             socket.emit('leave', { code: roomCode });
         });
-
-        // Add CSS animations
-        var style = document.createElement('style');
-        style.textContent = '@keyframes slideIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } } @keyframes slideInRight { from { opacity: 0; transform: translateX(100px); } to { opacity: 1; transform: translateX(0); } } @keyframes slideOutRight { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(100px); } }';
-        document.head.appendChild(style);
     </script>
 </body>
 
