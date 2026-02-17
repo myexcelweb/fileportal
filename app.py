@@ -1,4 +1,4 @@
-# 🟢 CRITICAL: Must be FIRST
+# 🟢 CRITICAL: Must be the FIRST lines of the file
 import eventlet
 eventlet.monkey_patch()
 
@@ -20,14 +20,15 @@ import io
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "your-secret-key-here-change-in-production")
-app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024  # 100MB max
+app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024  # 100MB max upload size
 
-# 🟢 CHANGED: Using 'eventlet' as requested
+# 🟢 CONFIG: Using 'eventlet' for async mode (Required for Render)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 UPLOAD_FOLDER = "uploads"
 ROOM_DURATION_MINS = 15
 
+# Ensure upload directory exists
 Path(UPLOAD_FOLDER).mkdir(exist_ok=True)
 
 # ────────────────────────────────────────────────
@@ -78,7 +79,7 @@ def add_history(code, user, action):
 def cleanup_expired_rooms():
     """Background task to delete expired rooms and their files."""
     while True:
-        eventlet.sleep(60)  # 🟢 CHANGED: Use eventlet.sleep instead of time.sleep
+        eventlet.sleep(60)  # Check every minute
         now = datetime.now()
         expired_files = []
         expired_rooms = []
@@ -170,7 +171,7 @@ def join_existing_room():
     response.set_cookie('user_id', user, max_age=60*60*24)
     return response
 
-# 🟢 NEW ROUTE: Handle Direct Join Links (QR Code)
+# Handle Direct Join Links (QR Code)
 @app.route("/j/<code>")
 def join_via_link(code):
     with room_lock:
@@ -312,6 +313,37 @@ def download_all(code):
         'Content-Disposition': f'attachment; filename=files_{code}.zip'
     })
 
+# 🟢 NEW ROUTE: Immediate Room Destruction (Exit & Delete)
+@app.route("/destroy/<code>", methods=["POST"])
+def destroy_room(code):
+    files_to_delete = []
+    
+    # 1. Remove from memory safely
+    with room_lock:
+        if code in room_store:
+            # Get list of files to delete from disk
+            for file_info in room_store[code]["files"]:
+                files_to_delete.append(file_info["stored_name"])
+            
+            # Delete room data from memory
+            del room_store[code]
+            print(f"💥 Room {code} destroyed by user.")
+    
+    # 2. Delete files from disk
+    for filename in files_to_delete:
+        try:
+            file_path = Path(UPLOAD_FOLDER) / filename
+            if file_path.exists():
+                file_path.unlink() # Deletes the file
+        except Exception as e:
+            print(f"Error deleting file {filename}: {e}")
+
+    # 3. Notify everyone in the room to leave
+    socketio.emit('room_destroyed', {}, to=code)
+    
+    # 4. Redirect the user who clicked the button to home
+    return redirect(url_for('index'))
+
 # ────────────────────────────────────────────────
 #  APP START
 # ────────────────────────────────────────────────
@@ -328,7 +360,6 @@ if __name__ == "__main__":
     
     port = int(os.environ.get("PORT", 5000))
     
-    # 🟢 PRINT URL to Terminal
     print("\n" + "="*60)
     print(f"🚀 Server is running! Open this URL in your browser:")
     print(f"🔗 http://127.0.0.1:{port}")
