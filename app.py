@@ -80,33 +80,38 @@ def cleanup_expired_rooms():
     """Background task to delete expired rooms and their files."""
     while True:
         eventlet.sleep(60)  # Check every minute
-        now = datetime.now()
-        expired_files = []
-        expired_rooms = []
-        
-        # Identify expired items safely
-        with room_lock:
-            for code, data in list(room_store.items()):
-                if (now - data["timestamp"]) > timedelta(minutes=ROOM_DURATION_MINS):
-                    expired_rooms.append(code)
-                    for file_info in data["files"]:
-                        expired_files.append(file_info["stored_name"])
+        try:
+            now = datetime.now()
+            expired_files = []
+            expired_rooms = []
             
-            # Remove from memory
-            for code in expired_rooms:
-                del room_store[code]
-
-        # Delete files from disk (Outside lock to allow other operations)
-        for filename in expired_files:
-            try:
-                file_path = Path(UPLOAD_FOLDER) / filename
-                if file_path.exists():
-                    file_path.unlink()
-            except Exception as e:
-                print(f"Error deleting file {filename}: {e}")
+            # Identify expired items safely
+            with room_lock:
+                for code, data in list(room_store.items()):
+                    if (now - data["timestamp"]) > timedelta(minutes=ROOM_DURATION_MINS):
+                        expired_rooms.append(code)
+                        for file_info in data["files"]:
+                            expired_files.append(file_info["stored_name"])
                 
-        if expired_rooms:
-            print(f"🧹 Cleanup: Removed {len(expired_rooms)} expired rooms.")
+                # Remove from memory AND Notify users
+                for code in expired_rooms:
+                    # 🟢 FIX: Notify clients that room is destroyed
+                    socketio.emit('room_destroyed', {}, to=code)
+                    if code in room_store:
+                        del room_store[code]
+                        print(f"🧹 Cleanup: Auto-deleted expired room {code}")
+
+            # Delete files from disk (Outside lock to allow other operations)
+            for filename in expired_files:
+                try:
+                    file_path = Path(UPLOAD_FOLDER) / filename
+                    if file_path.exists():
+                        file_path.unlink()
+                except Exception as e:
+                    print(f"Error deleting file {filename}: {e}")
+                    
+        except Exception as e:
+            print(f"Error in cleanup loop: {e}")
 
 # ────────────────────────────────────────────────
 #  SOCKET.IO EVENTS
@@ -205,12 +210,18 @@ def room_page(code):
     remaining = timedelta(minutes=ROOM_DURATION_MINS) - elapsed
     remaining_seconds = int(remaining.total_seconds())
     
-    return render_template("room.html",
+    # 🟢 FIX: Prevent Browser Caching so timer doesn't reset on reload
+    resp = make_response(render_template("room.html",
                          code=code,
                          files=files,
                          history=history,
                          current_user=user,
-                         remaining_seconds=max(0, remaining_seconds))
+                         remaining_seconds=max(0, remaining_seconds)))
+    
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
 
 @app.route("/upload/<code>", methods=["POST"])
 def upload_file(code):

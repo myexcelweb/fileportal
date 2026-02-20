@@ -46,6 +46,24 @@
         .home-link:hover {
             text-decoration: underline;
         }
+
+        /* New style for button row */
+        .button-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            width: 100%;
+        }
+
+        .button-row button {
+            flex: 1;
+            /* Makes buttons equal width */
+            margin: 0;
+            /* Remove default margins */
+            white-space: nowrap;
+            padding: 10px 5px;
+            /* Adjust padding for smaller screens */
+        }
     </style>
 </head>
 
@@ -61,7 +79,7 @@
             <div class="timer-container">
                 <div class="timer-label">Room expires in:</div>
                 <div class="countdown-timer">
-                    <div id="timer-display">{{ remaining_seconds // 60 }}:{{ '%02d' % (remaining_seconds % 60) }}</div>
+                    <div id="timer-display">Loading...</div>
                 </div>
                 <div id="timer-warning" class="timer-warning" style="display: none;">
                     ⚠️ Less than 2 minutes remaining!
@@ -79,9 +97,12 @@
                     Scan to Join</p>
             </div>
 
-            <button class="btn-copy-small" onclick="copyCode()">📋 Copy Room Code</button>
-            <button class="btn-copy-small" onclick="copyLink()"
-                style="margin-top: 8px; background: #4a90e2; width: 100%;">🔗 Copy Direct Link</button>
+            <!-- 🟢 UPDATED: Buttons in a single row -->
+            <div class="button-row">
+                <button class="btn-copy-small" onclick="copyCode()">📋 Copy Code</button>
+                <button class="btn-copy-small" onclick="copyLink()" style="background: #4a90e2;">🔗 Copy Link</button>
+            </div>
+
             <p class="info">Share this code with others to join this room</p>
         </div>
 
@@ -211,6 +232,8 @@
 
         // 🟢 HANDLE ROOM DESTRUCTION (Force Redirect)
         socket.on('room_destroyed', function () {
+            // Cancel the timer logic to prevent loops
+            if (timerInterval) clearInterval(timerInterval);
             alert('🚫 This room has been closed and all files deleted.');
             window.location.href = '/';
         });
@@ -321,35 +344,52 @@
             });
         }
 
-        // Timer countdown
+        // 🟢 IMPROVED TIMER LOGIC
+        // Using absolute time to prevent drift when tab is backgrounded
+        // Wait until page fully loads to ensure data attribute is read
+        var endTime;
+        var timerInterval;
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // Recalculate end time based on current time + remaining seconds from server
+            endTime = Date.now() + (remainingSeconds * 1000);
+
+            // Start timer
+            timerInterval = setInterval(updateTimer, 1000);
+            updateTimer(); // Run once immediately
+        });
+
         function updateTimer() {
-            if (remainingSeconds <= 0) {
+            var now = Date.now();
+            // Calculate remaining time in seconds
+            var timeLeft = Math.floor((endTime - now) / 1000);
+
+            if (timeLeft <= 0) {
                 document.getElementById('timer-display').textContent = 'EXPIRED';
                 document.getElementById('timer-display').style.color = '#c62828';
+
+                // Stop the timer
+                if (timerInterval) clearInterval(timerInterval);
+
                 alert('Room has expired! Files will be deleted.');
                 window.location.href = '/';
                 return;
             }
 
-            var minutes = Math.floor(remainingSeconds / 60);
-            var seconds = remainingSeconds % 60;
+            var minutes = Math.floor(timeLeft / 60);
+            var seconds = timeLeft % 60;
             document.getElementById('timer-display').textContent =
                 minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
 
-            if (remainingSeconds <= 120) {
+            if (timeLeft <= 120) {
                 document.getElementById('timer-display').style.color = '#f57c00';
                 document.getElementById('timer-warning').style.display = 'block';
             }
 
-            if (remainingSeconds <= 30) {
+            if (timeLeft <= 30) {
                 document.getElementById('timer-display').style.color = '#c62828';
             }
-
-            remainingSeconds--;
         }
-
-        // Start timer
-        setInterval(updateTimer, 1000);
 
         // Handle page unload
         window.addEventListener('beforeunload', function () {
