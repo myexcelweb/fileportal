@@ -4,7 +4,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Room {{ code }} - File Transfer</title>
+
+    <!-- SEO Meta Tags -->
+    <title>Room {{ code }} - Real-Time File Transfer | Secure File Sharing</title>
+    <meta name="description"
+        content="Join room {{ code }} for secure real-time file transfer. Share files instantly with auto-delete after 15 minutes. No registration required.">
+    <meta name="keywords"
+        content="file transfer room {{ code }}, secure file sharing, real-time file transfer, temporary file upload">
+    <meta name="robots" content="noindex, nofollow"> <!-- Prevent search engines from indexing rooms -->
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Room {{ code }} - Real-Time File Transfer">
+    <meta property="og:description"
+        content="Join this secure room for instant file sharing. Auto-deletes in 15 minutes.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.url }}">
+
+    <!-- Canonical -->
+    <link rel="canonical" href="{{ request.url }}">
+
+    <!-- Stylesheet -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
     <!-- Socket.IO Client Library -->
@@ -47,7 +66,7 @@
             text-decoration: underline;
         }
 
-        /* New style for button row */
+        /* Button row for better layout */
         .button-row {
             display: flex;
             gap: 10px;
@@ -57,36 +76,204 @@
 
         .button-row button {
             flex: 1;
-            /* Makes buttons equal width */
             margin: 0;
-            /* Remove default margins */
             white-space: nowrap;
-            padding: 10px 5px;
-            /* Adjust padding for smaller screens */
+            padding: 12px 5px;
+        }
+
+        /* Room header with navigation */
+        .room-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .room-header h1 {
+            margin-bottom: 0;
+            font-size: clamp(20px, 5vw, 28px);
+        }
+
+        .nav-icons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .nav-icon {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            font-size: 20px;
+            transition: all 0.3s;
+            backdrop-filter: blur(5px);
+        }
+
+        .nav-icon:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        /* File item improvements */
+        .file-item {
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+        }
+
+        .file-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+            transform: translateX(2px);
+        }
+
+        .file-sender-badge {
+            background: #667eea;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .history-list {
+            max-height: 150px;
+            overflow-y: auto;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+
+        .history-item {
+            padding: 5px 0;
+            border-bottom: 1px dashed #ddd;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .history-time {
+            color: #999;
+            font-size: 11px;
+            margin-right: 8px;
+        }
+
+        .history-user {
+            color: #667eea;
+            font-weight: 600;
+            margin-left: 5px;
+        }
+
+        /* Upload progress indicator */
+        .upload-progress {
+            height: 4px;
+            background: #f0f0f0;
+            border-radius: 2px;
+            margin: 10px 0;
+            overflow: hidden;
+            display: none;
+        }
+
+        .upload-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        /* Toast notification */
+        .toast-notification {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-size: 14px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            display: none;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translate(-50%, 20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translate(-50%, 0);
+                opacity: 1;
+            }
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 600px) {
+            .button-row {
+                flex-direction: column;
+            }
+
+            .button-row button {
+                width: 100%;
+            }
+
+            .room-header {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .nav-icons {
+                justify-content: center;
+            }
         }
     </style>
 </head>
 
 <body data-room-code="{{ code }}" data-current-user="{{ current_user }}"
-    data-remaining-seconds="{{ remaining_seconds }}">
+    data-remaining-seconds="{{ remaining_seconds }}"
+    data-join-url="{{ url_for('join_via_link', code=code, _external=True) }}">
 
     <div class="container">
-        <h1>🔐 Room {{ code }}</h1>
-        <p class="subtitle">Share this code or scan QR to transfer files</p>
+        <!-- Room Header with Navigation - UPDATED (GitHub removed) -->
+        <div class="room-header">
+            <h1>🔐 Room {{ code }}</h1>
+            <div class="nav-icons">
+                <a href="{{ url_for('index') }}" class="nav-icon" title="Home">🏠</a>
+                <a href="{{ url_for('about') }}" class="nav-icon" title="About">📄</a>
+                <a href="{{ url_for('contact') }}" class="nav-icon" title="Contact">📞</a>
+            </div>
+        </div>
+
+        <p class="subtitle">Share this code or scan QR to transfer files in real-time</p>
 
         <!-- Timer & Code Section -->
         <div class="card">
             <div class="timer-container">
-                <div class="timer-label">Room expires in:</div>
+                <div class="timer-label">⏳ Room expires in:</div>
                 <div class="countdown-timer">
                     <div id="timer-display">Loading...</div>
                 </div>
                 <div id="timer-warning" class="timer-warning" style="display: none;">
-                    ⚠️ Less than 2 minutes remaining!
+                    ⚠️ Less than 2 minutes remaining! Download files now.
                 </div>
             </div>
 
-            <div class="code-display-small">{{ code }}</div>
+            <div class="code-display-small" onclick="copyCode()" style="cursor: pointer;" title="Click to copy">
+                {{ code }} 📋
+            </div>
 
             <!-- QR Code Container -->
             <div id="qrcode-container"
@@ -94,16 +281,22 @@
                 <div id="qrcode"></div>
                 <p
                     style="margin-top: 10px; font-size: 12px; color: #888; font-weight: bold; text-transform: uppercase;">
-                    Scan to Join</p>
+                    📱 Scan to Join on Mobile
+                </p>
             </div>
 
-            <!-- 🟢 UPDATED: Buttons in a single row -->
+            <!-- Buttons in a single row -->
             <div class="button-row">
                 <button class="btn-copy-small" onclick="copyCode()">📋 Copy Code</button>
-                <button class="btn-copy-small" onclick="copyLink()" style="background: #4a90e2;">🔗 Copy Link</button>
+                <button class="btn-copy-small" onclick="copyLink()" style="background: #4a90e2;">🔗 Copy Join
+                    Link</button>
+            </div>
+            <div class="button-row" style="margin-top: 5px;">
+                <button class="btn-copy-small" onclick="shareRoom()" style="background: #25D366;">📱 Share via
+                    WhatsApp</button>
             </div>
 
-            <p class="info">Share this code with others to join this room</p>
+            <p class="info">✨ Share this code or link - others will see files in real-time</p>
         </div>
 
         <!-- Upload Section -->
@@ -113,14 +306,24 @@
                 id="uploadForm">
                 <div class="file-input-wrapper">
                     <input type="file" name="file" id="file-input" multiple required>
-                    <label for="file-input" class="file-label">
-                        📁 Choose Files (Max 100MB total)
+                    <label for="file-input" class="file-label" id="file-label">
+                        📁 Click to Choose Files (Max 100MB total)
                     </label>
                 </div>
+
+                <!-- File list preview -->
                 <div id="file-list" class="file-list"></div>
-                <button type="submit" class="btn btn-primary">Upload Files</button>
+
+                <!-- Upload progress bar -->
+                <div class="upload-progress" id="upload-progress">
+                    <div class="upload-progress-bar" id="upload-progress-bar"></div>
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="upload-btn">
+                    ⬆️ Upload Files
+                </button>
             </form>
-            <div class="info">Multiple files supported • Auto-delete after 15 minutes</div>
+            <div class="info">✅ Multiple files supported • 🔒 Auto-delete after 15 minutes</div>
         </div>
 
         <!-- Files Section -->
@@ -130,16 +333,16 @@
             {% if files %}
             <div id="download-all-container">
                 <a href="{{ url_for('download_all', code=code) }}" class="btn btn-download">
-                    📦 Download All as ZIP
+                    📦 Download All as ZIP ({{ files|length }} files)
                 </a>
             </div>
 
-            <div id="files-container">
+            <div id="files-container" class="files-container">
                 {% for file in files %}
-                <div class="file-item" data-index="{{ loop.index0 }}">
+                <div class="file-item" data-index="{{ loop.index0 }}" data-filename="{{ file.original_name }}">
                     <div class="file-icon">📄</div>
                     <div class="file-info">
-                        <div class="file-name">{{ file.original_name }}</div>
+                        <div class="file-name" title="{{ file.original_name }}">{{ file.original_name }}</div>
                         <div class="file-meta">
                             <span class="file-type">{{ file.type }}</span>
                             <span class="file-size">{{ file.size }}</span>
@@ -149,12 +352,15 @@
                         </div>
                     </div>
                     <a href="{{ url_for('download_file', code=code, index=loop.index0) }}" class="btn-icon"
-                        title="Download">⬇️</a>
+                        title="Download {{ file.original_name }}">⬇️</a>
                 </div>
                 {% endfor %}
             </div>
             {% else %}
-            <div id="no-files-message" class="info">No files uploaded yet. Be the first to share!</div>
+            <div id="no-files-message" class="info">
+                📭 No files uploaded yet. Be the first to share!
+                <p style="margin-top: 10px; font-size: 12px;">Files appear here instantly when someone uploads.</p>
+            </div>
             {% endif %}
         </div>
 
@@ -170,42 +376,48 @@
                     <span class="history-user">(You)</span>
                     {% endif %}
                 </div>
+                {% else %}
+                <div class="history-item" style="text-align: center; color: #999;">
+                    No activity yet
+                </div>
                 {% endfor %}
             </div>
         </div>
 
-        <!-- 🟢 EXIT & DELETE SECTION -->
+        <!-- Exit & Delete Section -->
         <div class="card" style="border: 2px solid #ffebee;">
             <h3 style="color: #c62828;">⚠️ Danger Zone</h3>
-            <p class="info" style="margin-bottom: 15px;">Delete the room and all files immediately.</p>
+            <p class="info" style="margin-bottom: 15px;">⚠️ Delete the room and all files immediately. This cannot be
+                undone.</p>
 
             <form action="{{ url_for('destroy_room', code=code) }}" method="POST"
-                onsubmit="return confirm('⚠️ Are you sure? This will delete the room and ALL files immediately. This action cannot be undone.');">
-                <button type="submit" class="btn-danger">❌ Exit & Delete Room Data</button>
+                onsubmit="return confirm('⚠️ ARE YOU ABSOLUTELY SURE?\n\nThis will permanently delete the room and ALL files for everyone. This action cannot be undone.');">
+                <button type="submit" class="btn-danger">❌ Exit & Delete Room Permanently</button>
             </form>
 
             <a href="{{ url_for('index') }}" class="home-link">⬅️ Go Home (Keep Room Open)</a>
         </div>
     </div>
 
+    <!-- Toast Notification -->
+    <div id="toast" class="toast-notification"></div>
+
     <script>
         // Get configuration from data attributes
         var roomCode = document.body.getAttribute('data-room-code');
         var currentUser = document.body.getAttribute('data-current-user');
         var remainingSeconds = parseInt(document.body.getAttribute('data-remaining-seconds'));
+        var joinUrl = window.location.origin + "/j/" + roomCode;
 
         // Initialize Socket.IO
         var socket = io();
 
         // 🟢 QR CODE GENERATION
-        // We use the /j/ route if available, otherwise fallback to standard URL
-        var joinUrl = window.location.origin + "/j/" + roomCode;
-
         try {
             new QRCode(document.getElementById("qrcode"), {
                 text: joinUrl,
-                width: 128,
-                height: 128,
+                width: 160,
+                height: 160,
                 colorDark: "#000000",
                 colorLight: "#ffffff",
                 correctLevel: QRCode.CorrectLevel.H
@@ -215,13 +427,49 @@
             document.getElementById("qrcode-container").style.display = "none";
         }
 
-        // 🟢 COPY LINK FUNCTION
-        function copyLink() {
-            navigator.clipboard.writeText(joinUrl).then(function () {
-                alert("Link copied to clipboard!\nShare this with others to join instantly.");
+        // 🟢 UTILITY FUNCTIONS
+        function showToast(message, duration = 3000) {
+            var toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.display = 'block';
+
+            setTimeout(function () {
+                toast.style.display = 'none';
+            }, duration);
+        }
+
+        // 🟢 COPY FUNCTIONS
+        function copyCode() {
+            navigator.clipboard.writeText(roomCode).then(function () {
+                showToast('✅ Room code copied to clipboard!', 2000);
+
+                // Visual feedback on the code display
+                var codeDisplay = document.querySelector('.code-display-small');
+                codeDisplay.style.background = '#4CAF50';
+                codeDisplay.style.color = 'white';
+                setTimeout(function () {
+                    codeDisplay.style.background = '#f5f5f5';
+                    codeDisplay.style.color = '#667eea';
+                }, 500);
             }).catch(function (err) {
                 console.error('Could not copy text: ', err);
+                showToast('❌ Failed to copy code', 2000);
             });
+        }
+
+        function copyLink() {
+            navigator.clipboard.writeText(joinUrl).then(function () {
+                showToast('✅ Join link copied to clipboard!', 2000);
+            }).catch(function (err) {
+                console.error('Could not copy text: ', err);
+                showToast('❌ Failed to copy link', 2000);
+            });
+        }
+
+        function shareRoom() {
+            var text = `Join my file transfer room!\n\nRoom Code: ${roomCode}\nLink: ${joinUrl}\n\nFiles auto-delete after 15 minutes.`;
+            var whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
+            window.open(whatsappUrl, '_blank');
         }
 
         // Join the room via Socket.IO
@@ -230,17 +478,19 @@
             socket.emit('join', { code: roomCode });
         });
 
-        // 🟢 HANDLE ROOM DESTRUCTION (Force Redirect)
+        // 🟢 HANDLE ROOM DESTRUCTION
         socket.on('room_destroyed', function () {
-            // Cancel the timer logic to prevent loops
             if (timerInterval) clearInterval(timerInterval);
-            alert('🚫 This room has been closed and all files deleted.');
-            window.location.href = '/';
+            showToast('🚫 Room has been closed by the owner', 4000);
+            setTimeout(function () {
+                window.location.href = '/';
+            }, 2000);
         });
 
         // Handle new files uploaded by other users
         socket.on('new_files', function (data) {
             console.log('New files received:', data);
+            showToast(`📥 ${data.files.length} new file(s) received!`, 3000);
 
             // Remove "no files" message if it exists
             var noFilesMsg = document.getElementById('no-files-message');
@@ -253,6 +503,7 @@
             if (!filesContainer) {
                 filesContainer = document.createElement('div');
                 filesContainer.id = 'files-container';
+                filesContainer.className = 'files-container';
                 var parentCard = document.querySelector('#file-count').closest('.card');
 
                 // Add download all button if it doesn't exist
@@ -267,10 +518,16 @@
                 parentCard.appendChild(filesContainer);
             }
 
-            // Add each new file to the list
-            data.files.forEach(function (file) {
-                var fileItem = createFileElement(file);
-                filesContainer.insertAdjacentHTML('beforeend', fileItem);
+            // Add each new file to the list with animation
+            data.files.forEach(function (file, index) {
+                setTimeout(function () {
+                    var fileItem = createFileElement(file);
+                    filesContainer.insertAdjacentHTML('beforeend', fileItem);
+
+                    // Highlight new file
+                    var newFile = filesContainer.lastElementChild;
+                    newFile.style.animation = 'slideIn 0.5s ease';
+                }, index * 100);
             });
 
             // Update file count
@@ -280,7 +537,7 @@
         // Handle file download notifications
         socket.on('file_downloaded', function (data) {
             if (data.user !== currentUser) {
-                console.log('File downloaded: ' + data.filename);
+                showToast(`📥 Someone downloaded: ${data.filename}`, 2000);
             }
         });
 
@@ -289,90 +546,120 @@
             var isSender = file.sender === currentUser;
             var senderBadge = isSender ? '<span class="file-sender-badge">You</span>' : '';
 
-            return '<div class="file-item" data-index="' + file.index + '">' +
+            return '<div class="file-item" data-index="' + file.index + '" data-filename="' + file.original_name + '">' +
                 '<div class="file-icon">📄</div>' +
                 '<div class="file-info">' +
-                '<div class="file-name">' + file.original_name + '</div>' +
+                '<div class="file-name" title="' + file.original_name + '">' + file.original_name + '</div>' +
                 '<div class="file-meta">' +
                 '<span class="file-type">' + file.type + '</span>' +
                 '<span class="file-size">' + file.size + '</span>' +
                 senderBadge +
                 '</div>' +
                 '</div>' +
-                '<a href="/download/' + roomCode + '/' + file.index + '" class="btn-icon" title="Download">⬇️</a>' +
+                '<a href="/download/' + roomCode + '/' + file.index + '" class="btn-icon" title="Download ' + file.original_name + '">⬇️</a>' +
                 '</div>';
         }
 
         // Update file count
         function updateFileCount() {
             var fileItems = document.querySelectorAll('.file-item');
-            document.getElementById('file-count').textContent = fileItems.length;
+            var count = fileItems.length;
+            document.getElementById('file-count').textContent = count;
+
+            // Update download all button text
+            var downloadAllBtn = document.querySelector('#download-all-container .btn-download');
+            if (downloadAllBtn) {
+                downloadAllBtn.innerHTML = '📦 Download All as ZIP (' + count + ' file' + (count !== 1 ? 's' : '') + ')';
+            }
         }
 
-        // File input display
+        // File input display with size validation
         document.getElementById('file-input').addEventListener('change', function (e) {
             var fileList = document.getElementById('file-list');
+            var fileLabel = document.getElementById('file-label');
             fileList.innerHTML = '';
 
-            if (e.target.files.length > 0) {
+            var totalSize = 0;
+            var files = e.target.files;
+
+            if (files.length > 0) {
                 var listContainer = document.createElement('div');
                 listContainer.style.cssText = 'margin: 10px 0; padding: 10px; background: #f5f5f5; border-radius: 8px;';
 
-                Array.from(e.target.files).forEach(function (file) {
+                Array.from(files).forEach(function (file) {
+                    totalSize += file.size;
                     var fileItem = document.createElement('div');
-                    fileItem.style.cssText = 'padding: 5px 0; color: #666; font-size: 14px;';
-                    fileItem.textContent = '📄 ' + file.name + ' (' + (file.size / 1024 / 1024).toFixed(2) + ' MB)';
+                    fileItem.style.cssText = 'padding: 5px 0; color: #666; font-size: 14px; display: flex; justify-content: space-between;';
+                    fileItem.innerHTML = '<span>📄 ' + file.name + '</span><span>' + (file.size / 1024 / 1024).toFixed(2) + ' MB</span>';
                     listContainer.appendChild(fileItem);
                 });
 
+                // Add total size
+                var totalDiv = document.createElement('div');
+                totalDiv.style.cssText = 'margin-top: 8px; padding-top: 8px; border-top: 1px solid #ddd; font-weight: 600; color: #667eea;';
+                totalDiv.innerHTML = 'Total: ' + (totalSize / 1024 / 1024).toFixed(2) + ' MB / 100 MB';
+
+                if (totalSize > 100 * 1024 * 1024) {
+                    totalDiv.style.color = '#c62828';
+                    totalDiv.innerHTML += ' ❌ Exceeds limit!';
+                    document.getElementById('upload-btn').disabled = true;
+                    document.getElementById('upload-btn').style.opacity = '0.5';
+                } else {
+                    document.getElementById('upload-btn').disabled = false;
+                    document.getElementById('upload-btn').style.opacity = '1';
+                }
+
+                listContainer.appendChild(totalDiv);
                 fileList.appendChild(listContainer);
+
+                // Update label
+                fileLabel.innerHTML = '📁 ' + files.length + ' file(s) selected';
+            } else {
+                fileLabel.innerHTML = '📁 Click to Choose Files (Max 100MB total)';
             }
         });
 
-        // Copy code function
-        function copyCode() {
-            navigator.clipboard.writeText(roomCode).then(function () {
-                var btn = event.target;
-                var originalText = btn.textContent;
-                btn.textContent = '✓ Copied!';
-                btn.style.background = '#4CAF50';
+        // Upload progress simulation (just for UX)
+        document.getElementById('uploadForm').addEventListener('submit', function () {
+            var progressBar = document.getElementById('upload-progress');
+            var progressFill = document.getElementById('upload-progress-bar');
+            progressBar.style.display = 'block';
 
-                setTimeout(function () {
-                    btn.textContent = originalText;
-                    btn.style.background = '#667eea';
-                }, 2000);
-            });
-        }
+            var width = 0;
+            var interval = setInterval(function () {
+                if (width >= 90) {
+                    clearInterval(interval);
+                } else {
+                    width += 10;
+                    progressFill.style.width = width + '%';
+                }
+            }, 300);
+        });
 
         // 🟢 IMPROVED TIMER LOGIC
-        // Using absolute time to prevent drift when tab is backgrounded
-        // Wait until page fully loads to ensure data attribute is read
         var endTime;
         var timerInterval;
 
         document.addEventListener('DOMContentLoaded', function () {
-            // Recalculate end time based on current time + remaining seconds from server
             endTime = Date.now() + (remainingSeconds * 1000);
-
-            // Start timer
             timerInterval = setInterval(updateTimer, 1000);
-            updateTimer(); // Run once immediately
+            updateTimer();
         });
 
         function updateTimer() {
             var now = Date.now();
-            // Calculate remaining time in seconds
             var timeLeft = Math.floor((endTime - now) / 1000);
 
             if (timeLeft <= 0) {
                 document.getElementById('timer-display').textContent = 'EXPIRED';
                 document.getElementById('timer-display').style.color = '#c62828';
 
-                // Stop the timer
                 if (timerInterval) clearInterval(timerInterval);
 
-                alert('Room has expired! Files will be deleted.');
-                window.location.href = '/';
+                showToast('⏰ Room has expired! Redirecting...', 3000);
+                setTimeout(function () {
+                    window.location.href = '/';
+                }, 3000);
                 return;
             }
 
@@ -395,12 +682,29 @@
         window.addEventListener('beforeunload', function () {
             socket.emit('leave', { code: roomCode });
         });
+
+        // Add animation keyframes
+        var style = document.createElement('style');
+        style.innerHTML = `
+            @keyframes slideIn {
+                from {
+                    opacity: 0;
+                    transform: translateX(-20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateX(0);
+                }
+            }
+        `;
+        document.head.appendChild(style);
     </script>
 
+    <!-- UPDATED Footer - GitHub removed -->
+    <!-- Simplified Footer -->
     <footer class="footer">
         <p>
-            Contact: <a href="mailto:parimalhodar.dev@gmail.com">parimalhodar.dev@gmail.com</a> |
-            Designed & Developed by <strong>Parimal Hodar</strong>
+            📧 parimalhodar.dev@gmail.com | 👨‍💻 Designed & Developed by Parimal Hodar
         </p>
     </footer>
 

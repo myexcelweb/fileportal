@@ -8,7 +8,7 @@ import threading
 from pathlib import Path
 from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
-from flask import Flask, render_template, request, redirect, url_for, send_from_directory, jsonify, make_response
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory, jsonify, make_response, flash
 from flask_socketio import SocketIO, emit, join_room, leave_room
 import random
 import zipfile
@@ -136,7 +136,7 @@ def handle_leave(data):
         print(f"User left room: {code}")
 
 # ────────────────────────────────────────────────
-#  ROUTES
+#  MAIN ROUTES
 # ────────────────────────────────────────────────
 
 @app.route("/")
@@ -222,6 +222,10 @@ def room_page(code):
     resp.headers["Pragma"] = "no-cache"
     resp.headers["Expires"] = "0"
     return resp
+
+# ────────────────────────────────────────────────
+#  FILE UPLOAD/DOWNLOAD ROUTES
+# ────────────────────────────────────────────────
 
 @app.route("/upload/<code>", methods=["POST"])
 def upload_file(code):
@@ -356,6 +360,167 @@ def destroy_room(code):
     return redirect(url_for('index'))
 
 # ────────────────────────────────────────────────
+#  🆕 NEW: ABOUT & CONTACT ROUTES
+# ────────────────────────────────────────────────
+
+@app.route("/about")
+def about():
+    """About page - Information about the platform and creator"""
+    return render_template("about.html")
+
+@app.route("/contact")
+def contact():
+    """Contact page with form"""
+    return render_template("contactus.html")
+
+@app.route("/contact/submit", methods=["POST"])
+def contact_submit():
+    """Handle contact form submission"""
+    # Get form data
+    first_name = request.form.get("first_name", "").strip()
+    last_name = request.form.get("last_name", "").strip()
+    email = request.form.get("email", "").strip()
+    subject = request.form.get("subject", "").strip()
+    message = request.form.get("message", "").strip()
+    room_code = request.form.get("room_code", "").strip()
+    
+    # Basic validation
+    if not first_name or not email or not subject or not message:
+        flash("Please fill in all required fields.", "error")
+        return redirect(url_for('contact'))
+    
+    # Here you would typically:
+    # 1. Send an email notification (using smtplib, SendGrid, etc.)
+    # 2. Save to database (optional)
+    # 3. Log the contact request
+    
+    # For now, just log and flash success message
+    print("\n" + "="*50)
+    print("📬 NEW CONTACT FORM SUBMISSION")
+    print("="*50)
+    print(f"From: {first_name} {last_name}")
+    print(f"Email: {email}")
+    print(f"Subject: {subject}")
+    print(f"Room Code: {room_code if room_code else 'N/A'}")
+    print(f"Message: {message}")
+    print("="*50 + "\n")
+    
+    # 🟢 TODO: Implement actual email sending here
+    # Example with SendGrid (uncomment and configure):
+    # if os.environ.get('SENDGRID_API_KEY'):
+    #     send_email_notification(first_name, email, subject, message, room_code)
+    
+    # Flash success message to user
+    flash(f"Thank you {first_name}! Your message has been sent. We'll respond within 24 hours.", "success")
+    
+    return redirect(url_for('contact'))
+
+# Optional: Email sending function (commented out - implement as needed)
+"""
+def send_email_notification(name, email, subject, message, room_code):
+    '''Send email notification using SendGrid'''
+    import sendgrid
+    from sendgrid.helpers.mail import Mail
+    
+    sg = sendgrid.SendGridAPIClient(api_key=os.environ.get('SENDGRID_API_KEY'))
+    
+    mail = Mail(
+        from_email='noreply@fileportal.onrender.com',
+        to_emails='parimalhodar.dev@gmail.com',
+        subject=f'Contact Form: {subject}',
+        html_content=f'''
+        <h2>New Contact Form Submission</h2>
+        <p><strong>Name:</strong> {name}</p>
+        <p><strong>Email:</strong> {email}</p>
+        <p><strong>Subject:</strong> {subject}</p>
+        <p><strong>Room Code:</strong> {room_code or 'N/A'}</p>
+        <p><strong>Message:</strong></p>
+        <p>{message}</p>
+        '''
+    )
+    sg.send(mail)
+"""
+
+# ────────────────────────────────────────────────
+#  🆕 NEW: SITEMAP.XML ROUTE (For SEO)
+# ────────────────────────────────────────────────
+
+@app.route("/sitemap.xml")
+def sitemap():
+    """Generate sitemap.xml for search engines"""
+    # Get current date for lastmod
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    
+    # Define all your static pages
+    pages = [
+        {"loc": url_for('index', _external=True), "priority": "1.0"},
+        {"loc": url_for('about', _external=True), "priority": "0.8"},
+        {"loc": url_for('contact', _external=True), "priority": "0.8"},
+    ]
+    
+    sitemap_xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    sitemap_xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    
+    for page in pages:
+        sitemap_xml += '  <url>\n'
+        sitemap_xml += f'    <loc>{page["loc"]}</loc>\n'
+        sitemap_xml += f'    <lastmod>{current_date}</lastmod>\n'
+        sitemap_xml += '    <changefreq>daily</changefreq>\n'
+        sitemap_xml += f'    <priority>{page["priority"]}</priority>\n'
+        sitemap_xml += '  </url>\n'
+    
+    sitemap_xml += '</urlset>'
+    
+    response = make_response(sitemap_xml)
+    response.headers["Content-Type"] = "application/xml"
+    return response
+
+# ────────────────────────────────────────────────
+#  🆕 NEW: ROBOTS.TXT ROUTE (For SEO)
+# ────────────────────────────────────────────────
+
+@app.route("/robots.txt")
+def robots():
+    """Generate robots.txt for search engines"""
+    robots_txt = """User-agent: *
+Allow: /
+Disallow: /room/
+Disallow: /destroy/
+Disallow: /upload/
+
+Sitemap: """ + url_for('sitemap', _external=True)
+    
+    response = make_response(robots_txt)
+    response.headers["Content-Type"] = "text/plain"
+    return response
+
+# ────────────────────────────────────────────────
+#  ERROR HANDLERS
+# ────────────────────────────────────────────────
+
+@app.errorhandler(404)
+def page_not_found(e):
+    """Custom 404 page"""
+    return render_template("index.html", error="Page not found. Please check the URL."), 404
+
+@app.errorhandler(413)
+def too_large(e):
+    """File too large error handler"""
+    return render_template("index.html", error="File too large. Maximum size is 100MB."), 413
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    """Custom 500 page"""
+    print(f"Server Error: {e}")
+    return render_template("index.html", error="Internal server error. Please try again."), 500
+
+# 🟢 NEW: Google Search Console Verification
+@app.route('/googlef56d84775932f480.html')
+def google_verification():
+    """Serve Google verification file"""
+    return send_from_directory('static', 'googlef56d84775932f480.html')
+
+# ────────────────────────────────────────────────
 #  APP START
 # ────────────────────────────────────────────────
 
@@ -372,8 +537,19 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     
     print("\n" + "="*60)
-    print(f"🚀 Server is running! Open this URL in your browser:")
-    print(f"🔗 http://127.0.0.1:{port}")
+    print("🚀 FILE TRANSFER ROOM - SERVER STARTING")
+    print("="*60)
+    print(f"📁 Upload folder: {UPLOAD_FOLDER}")
+    print(f"⏱️  Room duration: {ROOM_DURATION_MINS} minutes")
+    print(f"📊 Max file size: 100MB")
+    print(f"🔗 Local URL: http://127.0.0.1:{port}")
+    print(f"🌍 Public URL: http://0.0.0.0:{port}")
+    print("="*60)
+    print("📄 New Pages Added:")
+    print("   • /about - About page")
+    print("   • /contact - Contact page")
+    print("   • /sitemap.xml - SEO sitemap")
+    print("   • /robots.txt - Robots directives")
     print("="*60 + "\n")
 
     socketio.run(app, host="0.0.0.0", port=port, debug=True)

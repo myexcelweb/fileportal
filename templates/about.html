@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- SEO Meta Tags -->
+    <title>About Us - Real-Time File Transfer | Secure P2P Sharing</title>
+    <meta name="title" content="About Us - Real-Time File Transfer | Secure P2P Sharing">
+    <meta name="description"
+        content="Learn about Real-Time File Transfer - a secure, temporary file sharing platform created by Parimal Hodar. No registration, auto-delete after 15 minutes, real-time sync.">
+    <meta name="keywords"
+        content="about file transfer, file sharing platform, about developer, Parimal Hodar, secure file transfer, temporary file sharing">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://fileportal.onrender.com/about">
+    <meta property="og:title" content="About Us - Real-Time File Transfer">
+    <meta property="og:description" content="Learn about our secure, temporary file sharing platform">
+    <meta property="og:image" content="{{ url_for('static', filename='about-preview.jpg') }}">
+
+    <!-- Canonical -->
+    <link rel="canonical" href="https://fileportal.onrender.com/about">
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <style>
+        .about-section {
+            text-align: left;
+        }
+
+        .about-section h3 {
+            color: #667eea;
+            margin: 25px 0 15px 0;
+            font-size: 22px;
+        }
+
+        .about-section h4 {
+            color: #764ba2;
+            margin: 20px 0 10px 0;
+            font-size: 18px;
+        }
+
+        .about-section p {
+            color: #555;
+            line-height: 1.8;
+            margin-bottom: 15px;
+        }
+
+        .about-section ul {
+            margin: 15px 0 20px 30px;
+            color: #666;
+            line-height: 1.8;
+        }
+
+        .about-section li {
+            margin-bottom: 8px;
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, #f5f7ff 0%, #eef2ff 100%);
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 25px 0;
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        .stat-item {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .stat-number {
+            font-size: 36px;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .team-section {
+            margin: 40px 0 20px;
+        }
+
+        .team-card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .team-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            color: white;
+        }
+
+        .team-name {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .team-role {
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .team-bio {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .social-links {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .social-link {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #667eea;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-size: 20px;
+        }
+
+        .social-link:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-3px);
+        }
+
+        .back-home {
+            display: inline-block;
+            margin: 20px 0;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .back-home:hover {
+            text-decoration: underline;
+        }
+
+        .tech-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .tech-badge {
+            background: #eef2ff;
+            color: #667eea;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        @media (max-width: 600px) {
+            .stats-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .team-card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>📁 About Us</h1>
+            <p class="subtitle">Learn more about Real-Time File Transfer and the creator behind it</p>
+        </header>
+
+        <!-- Main Content Card -->
+        <div class="card about-section">
+            <a href="{{ url_for('index') }}" class="back-home">← Back to Home</a>
+
+            <h3>🚀 Our Mission</h3>
+            <p>
+                <strong>Real-Time File Transfer</strong> was created with a simple mission: <em>to make file sharing
+                    instant, secure, and hassle-free</em>.
+                In a world where sharing files often requires accounts, logins, and permanent storage, we wanted to
+                create something different —
+                a temporary, private space where files appear instantly and disappear automatically.
+            </p>
+
+            <div class="highlight-box">
+                <p style="margin: 0; font-size: 18px; font-weight: 500; color: #333;">
+                    "Share files instantly. No registration. No traces. Just pure, real-time transfer."
+                </p>
+            </div>
+
+            <h3>📊 Platform Stats</h3>
+            <div class="stats-container">
+                <div class="stat-item">
+                    <div class="stat-number">15min</div>
+                    <div class="stat-label">Auto-Delete</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">100MB</div>
+                    <div class="stat-label">Max Upload</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">6-digit</div>
+                    <div class="stat-label">Room Code</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">24/7</div>
+                    <div class="stat-label">Availability</div>
+                </div>
+            </div>
+
+            <h3>✨ Key Features</h3>
+            <ul>
+                <li><strong>Real-Time Sync:</strong> Files appear instantly on all devices using WebSocket technology
+                </li>
+                <li><strong>No Registration:</strong> Start sharing immediately without creating an account</li>
+                <li><strong>Auto-Delete:</strong> Rooms and files are automatically deleted after 15 minutes</li>
+                <li><strong>Multiple Files:</strong> Upload several files at once (up to 100MB total)</li>
+                <li><strong>QR Codes:</strong> Easy mobile access with generated QR codes</li>
+                <li><strong>Download All:</strong> ZIP download of all files in a room</li>
+                <li><strong>Cross-Platform:</strong> Works on desktop, tablet, and mobile</li>
+            </ul>
+
+            <h3>🔧 Technology Stack</h3>
+            <div class="tech-stack">
+                <span class="tech-badge">Python</span>
+                <span class="tech-badge">Flask</span>
+                <span class="tech-badge">Socket.IO</span>
+                <span class="tech-badge">WebSockets</span>
+                <span class="tech-badge">Eventlet</span>
+                <span class="tech-badge">Gunicorn</span>
+                <span class="tech-badge">HTML5</span>
+                <span class="tech-badge">CSS3</span>
+                <span class="tech-badge">JavaScript</span>
+                <span class="tech-badge">QRCode.js</span>
+            </div>
+            <p style="margin-top: 10px; color: #666;">
+                The application runs on <strong>Render</strong> with <strong>eventlet</strong> workers for real-time
+                WebSocket support.
+                All data is stored in memory and on disk temporarily, with automatic cleanup every minute.
+            </p>
+
+            <h3>🔒 Privacy & Security</h3>
+            <p>
+                Your privacy is our priority. Here's how we protect your data:
+            </p>
+            <ul>
+                <li><strong>Temporary Storage:</strong> Files exist only for 15 minutes</li>
+                <li><strong>No Tracking:</strong> We don't track or store user information</li>
+                <li><strong>Room Isolation:</strong> Each room is completely separate</li>
+                <li><strong>Auto-Cleanup:</strong> Expired files are permanently deleted</li>
+                <li><strong>No Database:</strong> No permanent storage of any data</li>
+            </ul>
+
+            <h3>🎯 Use Cases</h3>
+            <ul>
+                <li><strong>Quick file sharing</strong> between colleagues</li>
+                <li><strong>Sending photos/videos</strong> to friends temporarily</li>
+                <li><strong>Transferring files</strong> between your own devices</li>
+                <li><strong>Sharing documents</strong> without email attachments</li>
+                <li><strong>Collaborative work</strong> with real-time updates</li>
+            </ul>
+
+            <h3>📈 Future Plans</h3>
+            <ul>
+                <li>End-to-end encryption for enhanced privacy</li>
+                <li>Larger file size limits</li>
+                <li>Password-protected rooms</li>
+                <li>Custom room names</li>
+                <li>Mobile apps (iOS/Android)</li>
+            </ul>
+
+            <!-- Creator/Team Section -->
+            <div class="team-section">
+                <h3>👨‍💻 Created By</h3>
+                <div class="team-card">
+                    <div class="team-avatar">👤</div>
+                    <div class="team-name">Parimal Hodar</div>
+                    <div class="team-role">Founder & Developer</div>
+                    <div class="team-bio">
+                        Full-stack developer passionate about creating useful, privacy-focused web applications.
+                        Built this platform to make temporary file sharing simple, fast, and secure.
+                    </div>
+                    <div class="social-links">
+                        <a href="mailto:parimalhodar.dev@gmail.com" class="social-link" title="Email">📧</a>
+                        <a href="https://github.com/myexcelweb" target="_blank" rel="noopener" class="social-link"
+                            title="GitHub">💻</a>
+                        <a href="https://linkedin.com/in/parimalhodar" target="_blank" rel="noopener"
+                            class="social-link" title="LinkedIn">🔗</a>
+                        <a href="https://twitter.com/parimalhodar" target="_blank" rel="noopener" class="social-link"
+                            title="Twitter">🐦</a>
+                    </div>
+                </div>
+            </div>
+
+            <h3>📞 Get in Touch</h3>
+            <p>
+                Have questions, suggestions, or feedback? We'd love to hear from you!
+            </p>
+            <ul>
+                <li><strong>Email:</strong> <a href="mailto:parimalhodar.dev@gmail.com">parimalhodar.dev@gmail.com</a>
+                </li>
+                <li><strong>Twitter:</strong> <a href="https://twitter.com/parimalhodar" target="_blank"
+                        rel="noopener">@parimalhodar</a></li>
+                <li><strong>LinkedIn:</strong> <a href="https://linkedin.com/in/parimalhodar" target="_blank"
+                        rel="noopener">Parimal Hodar</a></li>
+            </ul>
+
+            <p style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 2px dashed #ddd;">
+                Thank you for using <strong>Real-Time File Transfer</strong>! 🚀
+            </p>
+
+            <a href="{{ url_for('index') }}" class="back-home">← Back to Home</a>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div>
+            <p>
+                Contact: <a href="mailto:parimalhodar.dev@gmail.com">parimalhodar.dev@gmail.com</a> |
+                Designed & Developed by <strong>Parimal Hodar</strong>
+            </p>
+        </div>
+        <div style="font-size: 11px; margin-top: 8px;">
+            <a href="{{ url_for('index') }}" style="color: white; text-decoration: none; margin: 0 5px;">Home</a> •
+            <a href="{{ url_for('about') }}" style="color: white; text-decoration: none; margin: 0 5px;">About</a> •
+            <a href="{{ url_for('contact') }}" style="color: white; text-decoration: none; margin: 0 5px;">Contact</a> •
+            <a href="https://--" target="_blank" rel="noopener"
+                style="color: white; text-decoration: none; margin: 0 5px;">GitHub</a>
+        </div>
+    </footer>
+</body>
+
+</html>

@@ -2,51 +2,364 @@
 <html lang="en">
 
 <head>
+    <!-- Basic Meta Tags -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>File Transfer Room</title>
+
+    <!-- Primary Meta Tags - SEO Optimized -->
+    <title>Real-Time File Transfer | Secure P2P Sharing with Auto-Delete</title>
+    <meta name="title" content="Real-Time File Transfer - Secure P2P File Sharing with Auto-Delete">
+    <meta name="description"
+        content="Free real-time file transfer. Share files securely with auto-delete after 15 minutes. No registration, instant setup, works on all devices. Send large files instantly with WebSocket technology.">
+    <meta name="keywords"
+        content="file transfer, real-time file sharing, p2p file transfer, secure file sharing, temporary file transfer, send large files, instant file sharing, websocket file transfer, no registration file upload, private file sharing">
+    <meta name="author" content="Parimal Hodar">
+    <meta name="robots" content="index, follow">
+    <meta name="language" content="English">
+    <meta name="revisit-after" content="1 day">
+
+    <!-- Open Graph / Facebook Meta Tags -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://fileportal.onrender.com/">
+    <meta property="og:title" content="Real-Time File Transfer - Secure P2P File Sharing">
+    <meta property="og:description"
+        content="Free real-time file transfer. Share files securely with auto-delete after 15 minutes. No registration needed!">
+    <meta property="og:image" content="{{ url_for('static', filename='images/og-preview.jpg') }}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:site_name" content="File Transfer Room">
+
+    <!-- Twitter Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://fileportal.onrender.com/">
+    <meta name="twitter:title" content="Real-Time File Transfer - Secure P2P File Sharing">
+    <meta name="twitter:description"
+        content="Free real-time file transfer. Share files securely with auto-delete after 15 minutes.">
+    <meta name="twitter:image" content="{{ url_for('static', filename='images/twitter-preview.jpg') }}">
+    <meta name="twitter:creator" content="@parimalhodar">
+
+    <!-- Canonical URL - Prevents duplicate content issues -->
+    <link rel="canonical" href="https://fileportal.onrender.com/">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon-16x16.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
+
+    <!-- Theme Color for Browser -->
+    <meta name="theme-color" content="#667eea">
+
+    <!-- Google Site Verification (Replace with your actual code) -->
+    <meta name="google-site-verification" content="googlef56d84775932f480" />
+
+    <!-- Structured Data / JSON-LD for Rich Results -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Real-Time File Transfer",
+        "description": "Secure temporary file sharing with auto-delete after 15 minutes",
+        "applicationCategory": "File Sharing",
+        "operatingSystem": "All",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "featureList": [
+            "Real-time file updates",
+            "Auto-delete after 15 minutes",
+            "No registration required",
+            "Multiple file upload",
+            "Cross-platform support"
+        ],
+        "screenshot": "{{ url_for('static', filename='images/screenshot.jpg', _external=True) }}",
+        "softwareVersion": "2.0",
+        "url": "{{ url_for('index', _external=True) }}",
+        "creator": {
+            "@type": "Person",
+            "name": "Parimal Hodar",
+            "email": "parimalhodar.dev@gmail.com"
+        }
+    }
+    </script>
+
+    <!-- CSS Stylesheet -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <style>
+        /* Additional inline styles */
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 15px;
+            margin-bottom: 10px;
+        }
+
+        .nav-links a {
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            font-size: 14px;
+            padding: 5px 10px;
+            border-radius: 6px;
+            transition: all 0.3s;
+        }
+
+        .nav-links a:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 25px 0 15px;
+        }
+
+        .feature-item {
+            text-align: center;
+            padding: 15px 10px;
+            background: rgba(102, 126, 234, 0.05);
+            border-radius: 12px;
+            transition: transform 0.3s;
+        }
+
+        .feature-item:hover {
+            transform: translateY(-3px);
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .feature-icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .feature-title {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .feature-desc {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .stats-banner {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 16px;
+            margin: 25px 0 15px;
+            text-align: center;
+        }
+
+        .stats-grid {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .stat-block {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 28px;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        @media (max-width: 600px) {
+            .stats-grid {
+                gap: 10px;
+            }
+
+            .stat-number {
+                font-size: 22px;
+            }
+
+            .stat-label {
+                font-size: 11px;
+            }
+
+            .feature-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .nav-links {
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+        }
+    </style>
 </head>
 
 <body>
+    <!-- Simple Navigation Bar -->
+    <div
+        style="position: absolute; top: 20px; right: 20px; left: 20px; display: flex; justify-content: space-between; align-items: center; max-width: 600px; margin: 0 auto; width: 100%;">
+        <div
+            style="color: white; font-weight: 600; font-size: 14px; background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 20px;">
+            ⚡ Real-Time
+        </div>
+        <div class="nav-links">
+            <a href="{{ url_for('index') }}">🏠 Home</a>
+            <a href="{{ url_for('about') }}">📄 About</a>
+            <a href="{{ url_for('contact') }}">📞 Contact</a>
+        </div>
+    </div>
+
     <div class="container">
-        <h1>📁 File Transfer Room</h1>
-        <p class="subtitle">Create a temporary room to share files in real-time</p>
+        <!-- Header -->
+        <header style="margin-top: 50px;">
+            <h1>📁 Real-Time File Transfer</h1>
+            <p class="subtitle">Create a temporary private room to share files instantly. No registration required •
+                Auto-delete after 15 minutes • Real-time sync</p>
+        </header>
+
+        <!-- Stats Banner -->
+        <div class="stats-banner">
+            <div class="stats-grid">
+                <div class="stat-block">
+                    <div class="stat-number">15min</div>
+                    <div class="stat-label">Auto-Delete</div>
+                </div>
+                <div class="stat-block">
+                    <div class="stat-number">100MB</div>
+                    <div class="stat-label">Max Upload</div>
+                </div>
+                <div class="stat-block">
+                    <div class="stat-number">6-digit</div>
+                    <div class="stat-label">Room Code</div>
+                </div>
+                <div class="stat-block">
+                    <div class="stat-number">24/7</div>
+                    <div class="stat-label">Free</div>
+                </div>
+            </div>
+        </div>
 
         <!-- CREATE ROOM SECTION -->
-        <div class="card">
+        <section class="card" aria-label="Create new file transfer room">
             <h2>📤 Start a Transfer</h2>
             <p style="text-align: center; color: #666; margin-bottom: 20px;">
-                Create a private room. Files and the room will be deleted automatically after 15 minutes.
+                Create a private room. Files and the room will be deleted automatically after 15 minutes for your
+                privacy and security.
             </p>
             <form action="/create" method="POST">
-                <button type="submit" class="btn btn-primary">Create Room (15 Min)</button>
+                <button type="submit" class="btn btn-primary" aria-label="Create new room with 15 minute expiry">
+                    ✨ Create Room (15 Min)
+                </button>
             </form>
-            <p class="info">No registration required • Real-time sync • Instant setup</p>
-        </div>
+            <p class="info">✓ No registration • ✓ Real-time sync • ✓ Instant setup</p>
+        </section>
 
         <!-- JOIN ROOM SECTION -->
-        <div class="card">
+        <section class="card" aria-label="Join existing file transfer room">
             <h2>📥 Join a Room</h2>
             <form action="/join" method="POST">
-                <input type="text" name="code" placeholder="Enter 6-digit code" pattern="[0-9]{6}" maxlength="6"
-                    required>
-                <button type="submit" class="btn btn-secondary">Join Room</button>
+                <label for="room-code" class="visually-hidden">Enter 6-digit room code</label>
+                <input type="text" id="room-code" name="code" placeholder="Enter 6-digit code" pattern="[0-9]{6}"
+                    maxlength="6" inputmode="numeric" autocomplete="off" required aria-label="Room code (6 digits)">
+                <button type="submit" class="btn btn-secondary" aria-label="Join existing room with code">
+                    🔑 Join Room
+                </button>
             </form>
-            <p class="info">Enter the code to see files appear in real-time</p>
+            <p class="info">Enter the 6-digit code to see files appear in real-time on all your devices</p>
+        </section>
+
+        <!-- Features Grid -->
+        <div class="feature-grid">
+            <div class="feature-item">
+                <div class="feature-icon">⚡</div>
+                <div class="feature-title">Real-Time</div>
+                <div class="feature-desc">Files appear instantly</div>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">🔒</div>
+                <div class="feature-title">Auto-Delete</div>
+                <div class="feature-desc">15 min expiry</div>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">📱</div>
+                <div class="feature-title">Cross-Platform</div>
+                <div class="feature-desc">All devices</div>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">🆓</div>
+                <div class="feature-title">Free</div>
+                <div class="feature-desc">No registration</div>
+            </div>
         </div>
 
+        <!-- How It Works Section -->
+        <div class="card" style="background: linear-gradient(135deg, #f5f7ff 0%, #eef2ff 100%);">
+            <h2 style="color: #667eea;">📋 How It Works</h2>
+            <ol style="margin-left: 20px; color: #555; line-height: 1.8;">
+                <li><strong>Create a room</strong> - Get a unique 6-digit code instantly</li>
+                <li><strong>Share the code</strong> - Send it to friends or let them scan QR</li>
+                <li><strong>Upload files</strong> - Multiple files up to 100MB total</li>
+                <li><strong>Auto-delete</strong> - Everything disappears after 15 minutes</li>
+            </ol>
+            <p style="text-align: center; margin-top: 15px; color: #667eea; font-weight: 500;">
+                ✨ Files appear on all devices simultaneously - no refresh needed!
+            </p>
+        </div>
+
+        <!-- Error Display -->
         {% if error %}
-        <div class="error-box">
+        <div class="error-box" role="alert">
             <h3>❌ Error</h3>
             <p>{{ error }}</p>
         </div>
         {% endif %}
+
+        <!-- Trust Badge -->
+        <div style="text-align: center; margin: 20px 0;">
+            <span
+                style="background: rgba(255,255,255,0.2); color: white; padding: 8px 20px; border-radius: 50px; font-size: 13px;">
+                🔒 100% Free • No Hidden Costs • Open Source
+            </span>
+        </div>
     </div>
 
+    <!-- SIMPLIFIED FOOTER - Only one line as requested -->
     <footer class="footer">
-        <p>Contact: parimalhodar.dev@gmail.com | Designed & Developed by Parimal Hodar</p>
+        <p>
+            📧 parimalhodar.dev@gmail.com | 👨‍💻 Designed & Developed by Parimal Hodar
+        </p>
     </footer>
+
+    <!-- Google Analytics (Replace with your ID if needed) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', 'G-XXXXXXXXXX');
+    </script>
 </body>
 
 </html>

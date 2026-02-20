@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://fileportal.onrender.com/sitemap.xml

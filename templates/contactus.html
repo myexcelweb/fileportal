@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- SEO Meta Tags -->
+    <title>Contact Us - Real-Time File Transfer | Get Support</title>
+    <meta name="title" content="Contact Us - Real-Time File Transfer | Get Support">
+    <meta name="description"
+        content="Contact the Real-Time File Transfer team. Get support, report issues, or send feedback. We're here to help with your temporary file sharing needs.">
+    <meta name="keywords" content="contact file transfer, file sharing support, report issue, feedback, help desk">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://fileportal.onrender.com/contact">
+    <meta property="og:title" content="Contact Us - Real-Time File Transfer">
+    <meta property="og:description" content="Get in touch with our team for support or feedback">
+    <meta property="og:image" content="{{ url_for('static', filename='contact-preview.jpg') }}">
+
+    <!-- Canonical -->
+    <link rel="canonical" href="https://fileportal.onrender.com/contact">
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <style>
+        .contact-section {
+            text-align: left;
+        }
+
+        .contact-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 30px 0;
+        }
+
+        .contact-info-card {
+            background: linear-gradient(135deg, #f5f7ff 0%, #eef2ff 100%);
+            padding: 30px;
+            border-radius: 16px;
+            height: fit-content;
+        }
+
+        .contact-info-card h3 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+
+        .contact-method {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .contact-method:last-child {
+            border-bottom: none;
+        }
+
+        .contact-icon {
+            width: 50px;
+            height: 50px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: #667eea;
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.2);
+        }
+
+        .contact-detail {
+            flex: 1;
+        }
+
+        .contact-detail h4 {
+            margin: 0 0 5px 0;
+            color: #333;
+        }
+
+        .contact-detail a {
+            color: #667eea;
+            text-decoration: none;
+            word-break: break-word;
+        }
+
+        .contact-detail a:hover {
+            text-decoration: underline;
+        }
+
+        .contact-detail p {
+            color: #666;
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .form-card {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            border: 1px solid #eef2ff;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 15px;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .btn-submit {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .faq-section {
+            margin: 40px 0 20px;
+        }
+
+        .faq-item {
+            background: white;
+            border: 1px solid #eef2ff;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+
+        .faq-question {
+            padding: 20px;
+            background: #fafbff;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .faq-question:hover {
+            background: #f0f2ff;
+        }
+
+        .faq-answer {
+            padding: 0 20px;
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .faq-item.active .faq-answer {
+            padding: 0 20px 20px;
+            max-height: 300px;
+        }
+
+        .faq-toggle {
+            font-size: 20px;
+            color: #667eea;
+        }
+
+        .success-message {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .response-time {
+            background: #fff3e0;
+            color: #e65100;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        @media (max-width: 700px) {
+            .contact-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .contact-info-card {
+                order: 2;
+            }
+
+            .form-card {
+                order: 1;
+            }
+        }
+
+        .back-home {
+            display: inline-block;
+            margin: 20px 0;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .back-home:hover {
+            text-decoration: underline;
+        }
+
+        .office-hours {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            color: #666;
+        }
+
+        .social-contact {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .social-contact a {
+            width: 45px;
+            height: 45px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #667eea;
+            text-decoration: none;
+            font-size: 22px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .social-contact a:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-3px);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>📞 Contact Us</h1>
+            <p class="subtitle">Get in touch with our team - we're here to help!</p>
+        </header>
+
+        <!-- Main Content Card -->
+        <div class="card contact-section">
+            <a href="{{ url_for('index') }}" class="back-home">← Back to Home</a>
+
+            <!-- Success/Error Messages (Flask flash messages) -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="{% if category == 'success' %}success-message{% else %}error-message{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            <!-- Contact Grid -->
+            <div class="contact-grid">
+                <!-- Contact Form -->
+                <div class="form-card">
+                    <h3 style="color: #667eea; margin-bottom: 25px;">✉️ Send us a Message</h3>
+
+                    <form action="{{ url_for('contact_submit') }}" method="POST">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="first_name">First Name *</label>
+                                <input type="text" id="first_name" name="first_name" required placeholder="John">
+                            </div>
+                            <div class="form-group">
+                                <label for="last_name">Last Name</label>
+                                <input type="text" id="last_name" name="last_name" placeholder="Doe">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="email">Email Address *</label>
+                            <input type="email" id="email" name="email" required placeholder="you@example.com">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="subject">Subject *</label>
+                            <select id="subject" name="subject" required>
+                                <option value="">Select a topic</option>
+                                <option value="general">General Inquiry</option>
+                                <option value="support">Technical Support</option>
+                                <option value="bug">Report a Bug</option>
+                                <option value="feature">Feature Request</option>
+                                <option value="feedback">Feedback</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="message">Message *</label>
+                            <textarea id="message" name="message" required
+                                placeholder="How can we help you?"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="room_code">Room Code (if applicable)</label>
+                            <input type="text" id="room_code" name="room_code" placeholder="e.g., 123456" maxlength="6"
+                                pattern="[0-9]{6}">
+                        </div>
+
+                        <button type="submit" class="btn-submit">📨 Send Message</button>
+                    </form>
+
+                    <p style="font-size: 12px; color: #999; margin-top: 15px; text-align: center;">
+                        * Required fields. We'll respond within 24 hours.
+                    </p>
+                </div>
+
+                <!-- Contact Information -->
+                <div class="contact-info-card">
+                    <h3>📋 Get in Touch</h3>
+
+                    <div class="contact-method">
+                        <div class="contact-icon">📧</div>
+                        <div class="contact-detail">
+                            <h4>Email</h4>
+                            <a href="mailto:parimalhodar.dev@gmail.com">parimalhodar.dev@gmail.com</a>
+                            <p>Response within 24 hours</p>
+                        </div>
+                    </div>
+
+
+
+                    <div class="contact-method">
+                        <div class="contact-icon">🐦</div>
+                        <div class="contact-detail">
+                            <h4>Twitter</h4>
+                            <a href="https://twitter.com/parimalhodar" target="_blank" rel="noopener">@parimalhodar</a>
+                            <p>Follow for updates</p>
+                        </div>
+                    </div>
+
+                    <div class="contact-method">
+                        <div class="contact-icon">💼</div>
+                        <div class="contact-detail">
+                            <h4>LinkedIn</h4>
+                            <a href="https://linkedin.com/in/parimalhodar" target="_blank" rel="noopener">Parimal
+                                Hodar</a>
+                            <p>Professional network</p>
+                        </div>
+                    </div>
+
+                    <div class="contact-method">
+                        <div class="contact-icon">📍</div>
+                        <div class="contact-detail">
+                            <h4>Location</h4>
+                            <p>Remote / Worldwide</p>
+                            <p style="font-size: 12px;">Available 24/7 online</p>
+                        </div>
+                    </div>
+
+                    <!-- Response Time -->
+                    <div class="response-time">
+                        ⏱️ <strong>Average Response Time:</strong> &lt; 12 hours
+                    </div>
+
+                    <!-- Office Hours -->
+                    <h4 style="margin: 20px 0 10px;">🕒 Support Hours</h4>
+                    <div class="office-hours">
+                        <span>Monday - Friday</span>
+                        <span>9:00 AM - 8:00 PM EST</span>
+                    </div>
+                    <div class="office-hours">
+                        <span>Saturday</span>
+                        <span>10:00 AM - 4:00 PM EST</span>
+                    </div>
+                    <div class="office-hours">
+                        <span>Sunday</span>
+                        <span>Closed</span>
+                    </div>
+
+                    <!-- Social Links -->
+                    <div class="social-contact">
+                        <a href="mailto:parimalhodar.dev@gmail.com" title="Email">📧</a>
+                        <a href="https://github.com/myexcelweb" target="_blank" title="GitHub">💻</a>
+                        <a href="https://twitter.com/parimalhodar" target="_blank" title="Twitter">🐦</a>
+                        <a href="https://linkedin.com/in/parimalhodar" target="_blank" title="LinkedIn">🔗</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ Section -->
+            <div class="faq-section">
+                <h3 style="color: #667eea; margin-bottom: 20px;">❓ Frequently Asked Questions</h3>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <span>How long do files stay on your server?</span>
+                        <span class="faq-toggle">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        Files are automatically deleted after 15 minutes from room creation. We run cleanup every minute
+                        to remove expired files permanently.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <span>Is there a file size limit?</span>
+                        <span class="faq-toggle">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        Yes, maximum total upload size is 100MB per room. This ensures optimal performance and fair
+                        usage for all users.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <span>Do I need to create an account?</span>
+                        <span class="faq-toggle">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        No registration required! Just create a room and start sharing instantly. We use temporary
+                        cookies only to identify your uploads.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <span>Are my files private?</span>
+                        <span class="faq-toggle">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        Yes, each room is isolated with a unique 6-digit code. Only people with the code can access the
+                        room and files. Files auto-delete after 15 minutes.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <span>Can I report a bug or issue?</span>
+                        <span class="faq-toggle">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        Absolutely! Use the contact form above, email us directly, or open an issue on our GitHub
+                        repository. We appreciate your feedback!
+                    </div>
+                </div>
+            </div>
+
+            <a href="{{ url_for('index') }}" class="back-home">← Back to Home</a>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div>
+            <p>
+                Contact: <a href="mailto:parimalhodar.dev@gmail.com">parimalhodar.dev@gmail.com</a> |
+                Designed & Developed by <strong>Parimal Hodar</strong>
+            </p>
+        </div>
+        <div style="font-size: 11px; margin-top: 8px;">
+            <a href="{{ url_for('index') }}" style="color: white; text-decoration: none; margin: 0 5px;">Home</a> •
+            <a href="{{ url_for('about') }}" style="color: white; text-decoration: none; margin: 0 5px;">About</a> •
+            <a href="{{ url_for('contact') }}" style="color: white; text-decoration: none; margin: 0 5px;">Contact</a> •
+            <!-- <a href="https://--" target="_blank" rel="noopener" -->
+            style="color: white; text-decoration: none; margin: 0 5px;">GitHub</a>
+        </div>
+    </footer>
+
+    <!-- FAQ Toggle Script -->
+    <script>
+        function toggleFAQ(element) {
+            const faqItem = element.closest('.faq-item');
+            faqItem.classList.toggle('active');
+
+            const toggle = element.querySelector('.faq-toggle');
+            if (faqItem.classList.contains('active')) {
+                toggle.textContent = '▲';
+            } else {
+                toggle.textContent = '▼';
+            }
+        }
+    </script>
+</body>
+
+</html>

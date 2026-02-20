@@ -17,7 +17,7 @@ git rm -r --cached . >nul 2>&1
 
 :: 1. SYNC REMOTE URL
 echo [1/5] Syncing remote...
-git remote set-url origin https://github.com/myexcelweb/fileportal.git >nul 2>&1
+git remote set-url origin https://--.git >nul 2>&1
 
 :: 2. DETECT BRANCH
 for /f "tokens=*" %%i in ('git branch --show-current') do set branch=%%i

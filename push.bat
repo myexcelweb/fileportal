@@ -12,7 +12,7 @@ echo.
 cd /d "%~dp0"
 
 :: 1. SYNC REMOTE URL
-git remote set-url origin https://github.com/myexcelweb/fileportal.git >nul 2>&1
+git remote set-url origin https://--.git >nul 2>&1
 
 :: 2. DETECT BRANCH
 for /f "tokens=*" %%i in ('git branch --show-current') do set branch=%%i
